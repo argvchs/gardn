@@ -257,10 +257,11 @@ void Game::tick(double time) {
                     Game::send_chat("/kill");
                 else if (Input::keys_held_this_tick.contains('E'))
                     Game::send_chat("/tpto");
-                else if (Input::keys_held_this_tick.contains('Q'))
-                    for (uint32_t i = 0; i < Game::loadout_count + MAX_SLOT_COUNT; ++i)
+                else if (Input::keys_held_this_tick.contains('Q')) {
+                    for (uint32_t i = 0; i < 2 * MAX_SLOT_COUNT; ++i)
                         Game::delete_petal(i);
-                else if (Input::keys_held_this_tick.contains('W'))
+                    Game::send_chat("/setxp 0");
+                } else if (Input::keys_held_this_tick.contains('W'))
                     for (uint32_t i = 0; i < MAX_SLOT_COUNT; ++i)
                         Game::delete_petal(Game::loadout_count + i);
                 else if (Input::keys_held_this_tick.contains('N'))
