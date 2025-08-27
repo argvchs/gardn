@@ -41,7 +41,7 @@ static void make_petal_tooltip(PetalID::T id) {
         }, 0, 0, { .h_justify = Style::Left }) : nullptr,
         a.constant_heal ? new Ui::HContainer({
             new Ui::StaticText(12, "Heal: ", { .fill = 0xffff94c9, .h_justify = Style::Left }),
-            new Ui::StaticText(12, std::format("{:g}/s", a.constant_heal * TPS), { .fill = 0xffffffff, .h_justify = Style::Left })
+            new Ui::StaticText(12, std::format("{:g}/s", a.constant_heal), { .fill = 0xffffffff, .h_justify = Style::Left })
         }, 0, 0, { .h_justify = Style::Left }) : nullptr,
         a.burst_heal ? new Ui::HContainer({
             new Ui::StaticText(12, "Heal: ", { .fill = 0xffff94c9, .h_justify = Style::Left }),
