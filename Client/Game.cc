@@ -253,18 +253,18 @@ void Game::tick(double time) {
         if (!Game::show_chat) {
             if (Input::keys_held.contains('`')) {
                 //process keybind commands
-                if (Input::keys_held_this_tick.contains('K')) 
+                if (Input::keys_held_this_tick.contains('K'))
                     Game::send_chat("/kill");
-                else if (Input::keys_held_this_tick.contains('E')) 
+                else if (Input::keys_held_this_tick.contains('E'))
                     Game::send_chat("/tpto");
-                else if (Input::keys_held_this_tick.contains('Q')) 
+                else if (Input::keys_held_this_tick.contains('Q'))
                     for (uint32_t i = 0; i < Game::loadout_count + MAX_SLOT_COUNT; ++i)
                         Game::delete_petal(i);
-                else if (Input::keys_held_this_tick.contains('N')) 
+                else if (Input::keys_held_this_tick.contains('N'))
                     Game::send_chat(std::format("/setxp {}", level_to_score(MAX_LEVEL)));
-                else if (Input::keys_held_this_tick.contains('H')) 
+                else if (Input::keys_held_this_tick.contains('H'))
                     Game::send_chat("/heal");
-                else if (Input::keys_held_this_tick.contains('F')) 
+                else if (Input::keys_held_this_tick.contains('F'))
                     Game::send_chat(std::format("/spawnallyto {}", MobID::T(MobID::kMassiveBeetle)));
                 else if (Input::keys_held_this_tick.contains('G'))
                     Game::send_chat("/ghost");
@@ -272,9 +272,9 @@ void Game::tick(double time) {
                 //process keybind petal switches
                 if (Input::keys_held_this_tick.contains('X'))
                     Game::swap_all_petals();
-                else if (Input::keys_held_this_tick.contains('E')) 
+                else if (Input::keys_held_this_tick.contains('E'))
                     Ui::forward_secondary_select();
-                else if (Input::keys_held_this_tick.contains('Q')) 
+                else if (Input::keys_held_this_tick.contains('Q'))
                     Ui::backward_secondary_select();
                 else if (Ui::UiLoadout::selected_with_keys == MAX_SLOT_COUNT) {
                     for (uint8_t i = 0; i < Game::loadout_count; ++i) {
