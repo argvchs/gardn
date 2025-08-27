@@ -249,6 +249,15 @@ void Client::command(Client *client, std::string const &text) {
         catch (const std::invalid_argument &) { return; }
         catch (const std::out_of_range &) { return; }
         player.set_score(player.score + xp);
+    } else if (command == "setxp") {
+        uint32_t xp;
+        try { iss >> arg, xp = uint32_t(std::stoul(arg)); }
+        catch (const std::invalid_argument &) { return; }
+        catch (const std::out_of_range &) { return; }
+        player.set_score(xp);
+    } else if (command == "heal") {
+        player.health = player.max_health;
+        player.set_health_ratio(1);
     } else if (command == "spawn") {
         MobID::T id;
         while (iss >> arg) {
