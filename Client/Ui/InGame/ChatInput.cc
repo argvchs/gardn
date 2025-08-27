@@ -10,14 +10,12 @@ using namespace Ui;
 ChatInput::ChatInput(std::string &r, float w, float h, uint32_t m, Style s) : TextInput(r, w, h, m, s) {}
 
 void ChatInput::on_render(Renderer &ctx) {
-    if (animation > 0.99) {
-        if (Input::keys_held_this_tick.contains(27)) // esc
-            Game::show_chat = false;
-        else if (Input::keys_held_this_tick.contains('\r')) {
-            Game::show_chat = false;
-            Game::send_chat(ref);
-            ref.clear();
-        }
+    if (Input::keys_held_this_tick.contains(27)) // esc
+        Game::show_chat = false;
+    else if (Input::keys_held_this_tick.contains('\r')) {
+        Game::show_chat = false;
+        Game::send_chat(ref);
+        ref.clear();
     }
     TextInput::on_render(ctx);
     DOM::element_focus(name.c_str());
