@@ -65,13 +65,13 @@ void on_collide(Simulation *sim, Entity &ent1, Entity &ent2) {
     if (fabs(ent1.x - ent2.x) > min_dist || fabs(ent1.y - ent2.y) > min_dist) return;
     //check if collide (distance independent)
     if (!_should_interact(ent1, ent2)) return;
-    // if either entity is a player in ghost mode, skip collisions with mobs/petals
+    // if either entity is a player in ghost mode, skip collisions with mobs/petals/webs
     if (ent1.has_component(kFlower) && ent1.ghost_mode) {
-        // allow no interaction with mobs and petals
-        if (ent2.has_component(kMob) || ent2.has_component(kPetal) || ent2.has_component(kDrop)) return;
+        // allow no interaction with mobs and petals and webs
+        if (ent2.has_component(kMob) || ent2.has_component(kPetal) || ent2.has_component(kDrop) || ent2.has_component(kWeb)) return;
     }
     if (ent2.has_component(kFlower) && ent2.ghost_mode) {
-        if (ent1.has_component(kMob) || ent1.has_component(kPetal) || ent1.has_component(kDrop)) return;
+        if (ent1.has_component(kMob) || ent1.has_component(kPetal) || ent1.has_component(kDrop) || ent1.has_component(kWeb)) return;
     }
     //finer distance check
     Vector separation(ent1.x - ent2.x, ent1.y - ent2.y);
