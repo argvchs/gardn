@@ -364,7 +364,8 @@ void draw_static_petal_single(PetalID::T id, Renderer &ctx) {
             ctx.fill();
             ctx.stroke();
             break;
-        case PetalID::kAzalea: {
+        case PetalID::kAzalea:
+        case PetalID::kTriAzalea: {
             ctx.set_fill(0xffff94c9);
             ctx.set_stroke(0xffcf78a3);
             ctx.set_line_width(3);

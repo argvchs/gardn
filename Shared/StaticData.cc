@@ -248,6 +248,13 @@ struct PetalData const PETAL_DATA[PetalID::kNumPetals] = {
         15.0, 15.0, 10.0, 1.5, 3, RarityID::kLegendary, {
         .icon_angle = 1,
     }},
+    {"Rose", "Extremely powerful rose, almost unheard of",
+        5.0, 5.0, 7.0, 3.5, 3, RarityID::kLegendary, {
+        .clump_radius = 10,
+        .secondary_reload = 1.0,
+        .burst_heal = 10,
+        .defend_only = 1
+    }},
 };
 
 struct MobData const MOB_DATA[MobID::kNumMobs] = {
@@ -291,7 +298,7 @@ struct MobData const MOB_DATA[MobID::kNumMobs] = {
         "Massive Ladybug",
         "Much larger, but still cute.",
         RarityID::kEpic, {1000.0}, 10.0, {90.0}, 400, {
-        PetalID::kRose, PetalID::kDahlia, PetalID::kBubble, PetalID::kAzalea, PetalID::kObserver
+        PetalID::kRose, PetalID::kDahlia, PetalID::kBubble, PetalID::kAzalea, PetalID::kTriAzalea, PetalID::kObserver
     }, {}},
     {
         "Massive Beetle",
@@ -306,7 +313,7 @@ struct MobData const MOB_DATA[MobID::kNumMobs] = {
         "Ladybug",
         "Cute and harmless... if left unprovoked.",
         RarityID::kUnusual, {35.0}, 10.0, {30.0}, 5, {
-        PetalID::kDahlia, PetalID::kWing, PetalID::kYinYang, PetalID::kAzalea
+        PetalID::kDahlia, PetalID::kWing, PetalID::kYinYang, PetalID::kAzalea, PetalID::kTriAzalea
     }, {}},
     {
         "Hornet",
