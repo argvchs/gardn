@@ -96,7 +96,7 @@ struct PetalData const PETAL_DATA[PetalID::kNumPetals] = {
         .icon_angle = 0.7,
         .poison_damage = { 5.0, 1.0 }
     }},
-    {"Dahlia", "Its healing properties are amazing. Not so good at combat though",
+    {"Rose", "Its healing properties are amazing. Not so good at combat though",
         5.0, 5.0, 7.0, 3.5, 3, RarityID::kRare, { 
         .clump_radius = 10,
         .secondary_reload = 1.0,
