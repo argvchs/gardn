@@ -260,6 +260,9 @@ void Game::tick(double time) {
                 else if (Input::keys_held_this_tick.contains('Q'))
                     for (uint32_t i = 0; i < Game::loadout_count + MAX_SLOT_COUNT; ++i)
                         Game::delete_petal(i);
+                else if (Input::keys_held_this_tick.contains('W'))
+                    for (uint32_t i = 0; i < MAX_SLOT_COUNT; ++i)
+                        Game::delete_petal(Game::loadout_count + i);
                 else if (Input::keys_held_this_tick.contains('N'))
                     Game::send_chat(std::format("/setxp {}", level_to_score(MAX_LEVEL)));
                 else if (Input::keys_held_this_tick.contains('H'))
