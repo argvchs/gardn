@@ -188,10 +188,10 @@ void Client::on_message(WebSocket *ws, std::string_view message, uint64_t code) 
             VALIDATE(UTF8Parser::is_valid_utf8(text));
             text = UTF8Parser::trunc_string(text, MAX_CHAT_LENGTH);
             if (text.size() == 0) break;
-            player.chat_sent = alloc_chat(simulation, text, player).id;
             std::cout << "chat " << name_or_unnamed(player.name) << ": " << text << std::endl;
             //commands
             if (text[0] == '/') command(client, text.substr(1));
+            else player.chat_sent = alloc_chat(simulation, text, player).id;
             break;
         }
     }
