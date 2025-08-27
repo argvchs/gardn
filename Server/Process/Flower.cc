@@ -52,7 +52,7 @@ static struct PlayerBuffs _get_petal_passive_buffs(Simulation *sim, Entity &play
             ++buffs.yinyang_count;
         }
         if (!player.loadout[i].already_spawned) continue;
-        if (slot_petal_id == PetalID::kLeaf) 
+        if (slot_petal_id == PetalID::kLeaf || slot_petal_id == PetalID::kDuoLeaf) 
             buffs.heal += petal_data.attributes.constant_heal / TPS;
         else if (slot_petal_id == PetalID::kYucca && BIT_AT(player.input, InputFlags::kDefending) && !BIT_AT(player.input, InputFlags::kAttacking)) 
             buffs.heal += petal_data.attributes.constant_heal / TPS;

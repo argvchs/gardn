@@ -89,6 +89,7 @@ namespace PetalID {
         kQuint,
         kTriWing,
         kTriAzalea,
+        kDuoLeaf,
         kNumPetals
     };
 };

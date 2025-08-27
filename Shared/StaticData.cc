@@ -255,6 +255,12 @@ struct PetalData const PETAL_DATA[PetalID::kNumPetals] = {
         .burst_heal = 10,
         .defend_only = 1
     }},
+    {"Leaf", "Gathers energy from the sun to passively heal your flower",
+        10.0, 8.0, 10.0, 1.0, 2, RarityID::kLegendary, {
+        .clump_radius = 10,
+        .constant_heal = 2,
+        .icon_angle = -1
+    }},
 };
 
 struct MobData const MOB_DATA[MobID::kNumMobs] = {
@@ -262,13 +268,13 @@ struct MobData const MOB_DATA[MobID::kNumMobs] = {
         "Baby Ant",
         "Weak and defenseless, but big dreams.",
         RarityID::kCommon, {10.0}, 10.0, {14.0}, 1, {
-        PetalID::kLight, PetalID::kLeaf, PetalID::kTwin, PetalID::kRice, PetalID::kTriplet, PetalID::kQuint, PetalID::kBone
+        PetalID::kLight, PetalID::kLeaf, PetalID::kTwin, PetalID::kRice, PetalID::kTriplet, PetalID::kDuoLeaf, PetalID::kQuint, PetalID::kBone
     }, {}},
     {
         "Worker Ant",
         "It's temperamental, probably from working all the time.",
         RarityID::kCommon, {25.0}, 10.0, {14.0}, 3, {
-        PetalID::kLight, PetalID::kLeaf, PetalID::kTwin, PetalID::kCorn, PetalID::kBone, PetalID::kTriplet, PetalID::kQuint
+        PetalID::kLight, PetalID::kLeaf, PetalID::kTwin, PetalID::kCorn, PetalID::kBone, PetalID::kTriplet, PetalID::kDuoLeaf, PetalID::kQuint
     }, {}},
     {
         "Soldier Ant",
@@ -343,7 +349,7 @@ struct MobData const MOB_DATA[MobID::kNumMobs] = {
         "Centipede",
         "It's just there doing its thing.",
         RarityID::kUnusual, {50.0}, 10.0, {35.0}, 2, {
-        PetalID::kTwin, PetalID::kLeaf, PetalID::kPeas, PetalID::kTriplet, PetalID::kPoisonPeas, PetalID::kPoisonPeas2, PetalID::kQuint
+        PetalID::kTwin, PetalID::kLeaf, PetalID::kPeas, PetalID::kTriplet, PetalID::kPoisonPeas, PetalID::kPoisonPeas2, PetalID::kDuoLeaf, PetalID::kQuint
     }, { .segments = 10 }},
     {
         "Evil Centipede",
