@@ -5,8 +5,8 @@
 #include <Shared/Entity.hh>
 #include <Shared/Simulation.hh>
 #include <Shared/StaticData.hh>
-
 #include <cmath>
+
 
 static void _focus_lose_clause(Entity &ent, Vector const &v) {
     if (v.magnitude() > 1.5 * MOB_DATA[ent.mob_id].attributes.aggro_radius) ent.target = NULL_ENTITY;
@@ -55,6 +55,7 @@ static void default_tick_returning(Simulation *sim, Entity &ent, float speed = 1
 
 
 static void tick_default_passive(Simulation *sim, Entity &ent) {
+   
     switch(ent.ai_state) {
         case AIState::kIdle: {
             default_tick_idle(sim, ent);
@@ -75,6 +76,7 @@ static void tick_default_passive(Simulation *sim, Entity &ent) {
 }
 
 static void tick_default_neutral(Simulation *sim, Entity &ent) {
+   
     if (sim->ent_alive(ent.target)) {
         Entity &target = sim->get_ent(ent.target);
         Vector v(target.x - ent.x, target.y - ent.y);
@@ -93,6 +95,7 @@ static void tick_default_neutral(Simulation *sim, Entity &ent) {
 }
 
 static void tick_default_aggro(Simulation *sim, Entity &ent, float speed) {
+   
     if (sim->ent_alive(ent.target)) {
         Entity &target = sim->get_ent(ent.target);
         Vector v(target.x - ent.x, target.y - ent.y);
@@ -142,6 +145,7 @@ static void tick_bee_passive(Simulation *sim, Entity &ent) {
 }
 
 static void tick_hornet_aggro(Simulation *sim, Entity &ent) {
+   
     if (sim->ent_alive(ent.target)) {
         Entity &target = sim->get_ent(ent.target);
         Vector v(target.x - ent.x, target.y - ent.y);
@@ -177,11 +181,153 @@ static void tick_hornet_aggro(Simulation *sim, Entity &ent) {
             ent.target = NULL_ENTITY;
         }
         ent.target = find_nearest_enemy(sim, ent, ent.detection_radius);
-        tick_bee_passive(sim, ent);;
+        tick_bee_passive(sim, ent);
+    }
+}
+
+static void tick_tank_aggro(Simulation* sim, Entity& ent) {
+    if (sim->ent_alive(ent.target)) {
+        Entity& target = sim->get_ent(ent.target);
+        Vector v(target.x - ent.x, target.y - ent.y);
+        _focus_lose_clause(ent, v);
+        float dist = v.magnitude();
+
+        // 运动逻辑
+        if (dist < 380) {
+            v.set_magnitude(-PLAYER_ACCELERATION * 0.35f); // 反向加速度
+            ent.acceleration = v;
+        }
+        else if (dist > 400) {
+            v.set_magnitude(PLAYER_ACCELERATION * 0.975f);
+            ent.acceleration = v;
+        }
+        else {
+            Vector circle_v(v.y, -v.x); // 右手法向量，顺时针
+            circle_v.set_magnitude(PLAYER_ACCELERATION * 0.7f);
+            ent.acceleration = circle_v;
+        }
+
+        // --- 目标位置预测与射击逻辑 ---
+        const float BULLET_ACCEL = 4.0f * PLAYER_ACCELERATION;
+        const float BULLET_FRICTION = DEFAULT_FRICTION * 1.5f;
+        const float offset = ent.radius * 1.8f;
+        const int MAX_ITERATIONS = 50;
+
+        // 子弹的发射点
+        Vector spawn_offset;
+        spawn_offset.unit_normal(ent.angle).set_magnitude(offset);
+        Vector bullet_spawn_pos(ent.x + spawn_offset.x, ent.y + spawn_offset.y);
+
+        // 复制目标初始状态
+        Vector simulated_target_pos = Vector(target.x, target.y);
+        Vector simulated_target_vel = Vector(target.velocity.x, target.velocity.y);
+        int simulated_target_slow_ticks = target.slow_ticks;
+
+        float lower_bound = 0.0f;
+        float upper_bound = (Vector(target.x, target.y) - bullet_spawn_pos).magnitude() / 10.0f;
+
+        // 二分查找最佳飞行时间
+        for (int i = 0; i < MAX_ITERATIONS; ++i) {
+            float mid_time = (lower_bound + upper_bound) / 2.0f;
+            if (mid_time < 0.01f) {
+                break;
+            }
+
+            // 模拟目标和子弹到 mid_time
+            Vector current_target_pos = simulated_target_pos;
+            Vector current_target_vel = simulated_target_vel;
+            int current_target_slow_ticks = simulated_target_slow_ticks;
+
+            Vector current_bullet_vel = Vector(0, 0);
+            Vector current_bullet_pos = bullet_spawn_pos;
+
+            // 临时预测方向，用于子弹加速度
+            Vector temp_predicted_v = Vector(current_target_pos.x - ent.x, current_target_pos.y - ent.y);
+
+            for (int frame = 0; frame < (int)ceil(mid_time); ++frame) {
+                if (current_target_slow_ticks > 0) {
+                    current_target_vel *= 0.5f;
+                    current_target_slow_ticks--;
+                }
+                current_target_vel *= (1.0f - target.friction);
+                current_target_vel += target.acceleration * target.speed_ratio;
+                current_target_pos += current_target_vel;
+
+                current_bullet_vel *= (1.0f - BULLET_FRICTION);
+                current_bullet_vel += temp_predicted_v.unit_normal(temp_predicted_v.angle()) * BULLET_ACCEL * 1.0f; // 1.0f 对应 BULLET_SPEED_RATIO
+                current_bullet_pos += current_bullet_vel;
+            }
+
+            float target_dist = (current_target_pos - bullet_spawn_pos).magnitude();
+            float bullet_dist = (current_bullet_pos - bullet_spawn_pos).magnitude();
+
+            if (bullet_dist > target_dist) {
+                upper_bound = mid_time;
+            }
+            else {
+                lower_bound = mid_time;
+            }
+        }
+
+        // 找到最佳飞行时间后，再次模拟目标到该时间点
+        float final_flight_time = lower_bound;
+        Vector final_target_pos = simulated_target_pos;
+        Vector final_target_vel = simulated_target_vel;
+        int final_target_slow_ticks = simulated_target_slow_ticks;
+
+        for (int frame = 0; frame < (int)ceil(final_flight_time); ++frame) {
+            if (final_target_slow_ticks > 0) {
+                final_target_vel *= 0.5f;
+                final_target_slow_ticks--;
+            }
+            final_target_vel *= (1.0f - target.friction);
+            final_target_vel += target.acceleration * target.speed_ratio;
+            final_target_pos += final_target_vel;
+        }
+
+        // 预测向量
+        Vector predicted_v(final_target_pos.x - ent.x, final_target_pos.y - ent.y);
+        ent.set_angle(predicted_v.angle());
+
+        // 射击
+        if (ent.ai_tick >= 0.5f * TPS && dist < 800) {
+            ent.ai_tick = 0;
+            Entity& bullet = alloc_petal(sim, PetalID::kBullet, ent);
+            entity_set_despawn_tick(bullet, 3 * TPS);
+            bullet.damage = 5;
+            bullet.health = bullet.max_health = 10;
+            bullet.radius = ent.radius * 0.4f;
+
+            bullet.set_angle(predicted_v.angle());
+
+            Vector spawn_offset_bullet;
+            spawn_offset_bullet.unit_normal(ent.angle).set_magnitude(offset);
+            bullet.x = ent.x + spawn_offset_bullet.x;
+            bullet.y = ent.y + spawn_offset_bullet.y;
+
+            bullet.acceleration.unit_normal(predicted_v.angle()).set_magnitude(BULLET_ACCEL);
+
+            // 后坐力
+            Vector kb;
+            kb.unit_normal(ent.angle - M_PI).set_magnitude(2.5f * PLAYER_ACCELERATION);
+            ent.velocity += kb;
+        }
+
+        return;
+    }
+    else {
+        if (!(ent.target == NULL_ENTITY)) {
+            ent.ai_state = AIState::kIdle;
+            ent.ai_tick = 0;
+            ent.target = NULL_ENTITY;
+        }
+        ent.target = find_nearest_enemy(sim, ent, ent.detection_radius);
+        tick_bee_passive(sim, ent);
     }
 }
 
 static void tick_centipede_passive(Simulation *sim, Entity &ent) {
+   
     switch(ent.ai_state) {
         case AIState::kIdle: {
             ent.set_angle(ent.angle + 0.25 / TPS);
@@ -202,6 +348,7 @@ static void tick_centipede_passive(Simulation *sim, Entity &ent) {
 }
 
 static void tick_centipede_neutral(Simulation *sim, Entity &ent, float speed) {
+   
     if (sim->ent_alive(ent.target)) {
         Entity &target = sim->get_ent(ent.target);
         Vector v(target.x - ent.x, target.y - ent.y);
@@ -237,6 +384,7 @@ static void tick_centipede_neutral(Simulation *sim, Entity &ent, float speed) {
 }
 
 static void tick_centipede_aggro(Simulation *sim, Entity &ent) {
+    
     if (sim->ent_alive(ent.target)) {
         Entity &target = sim->get_ent(ent.target);
         Vector v(target.x - ent.x, target.y - ent.y);
@@ -499,6 +647,10 @@ void tick_ai_behavior(Simulation *sim, Entity &ent) {
             break;
         case MobID::kDigger:
             tick_digger(sim, ent);
+            break;
+        case MobID::kTank:
+            tick_tank_aggro(sim, ent);
+            break;
         default:
             break;
     }

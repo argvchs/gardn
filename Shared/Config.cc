@@ -4,7 +4,7 @@ extern const uint64_t VERSION_HASH = 19235684321324ull;
 #ifdef DEV
 extern const uint32_t SERVER_PORT = 9002;
 #else
-extern const uint32_t SERVER_PORT = 9001;
+extern const uint32_t SERVER_PORT = 7001;
 #endif
 extern const uint32_t MAX_NAME_LENGTH = 32;
 extern const uint32_t MAX_CHAT_LENGTH = 128;
@@ -15,5 +15,5 @@ extern const std::string PASSWORD = "a621ab606db2a11f63edc576a729843b8269250dc32
 #ifdef TEST
 extern std::string const WS_URL = "ws://localhost:"+std::to_string(SERVER_PORT);
 #else
-extern std::string const WS_URL = "ws://154.12.60.44:"+std::to_string(SERVER_PORT);
+extern std::string const WS_URL = "ws://gardn.camvan.xyz:"+std::to_string(SERVER_PORT);
 #endif

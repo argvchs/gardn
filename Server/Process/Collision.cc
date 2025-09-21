@@ -9,18 +9,25 @@
 static bool _should_interact(Entity const &ent1, Entity const &ent2) {
     //if (ent1.has_component(kFlower) || ent2.has_component(kFlower)) return false;
     //if (ent1.has_component(kPetal) || ent2.has_component(kPetal)) return false;
+    if ((ent1.has_component(kFlower) && ent1.color == ColorID::kRed && ent2.has_component(kDrop)) ||
+        (ent2.has_component(kFlower) && ent2.color == ColorID::kRed && ent1.has_component(kDrop))) {
+        return false;
+    }
     if (ent1.pending_delete || ent2.pending_delete) return false;
     if (!(ent1.team == ent2.team)) return true;
     if (BIT_AT((ent1.flags | ent2.flags), EntityFlags::kNoFriendlyCollision)) return false;
     //if (ent1.has_component(kPetal) || ent2.has_component(kPetal)) return false;
     if (ent1.has_component(kMob) && ent2.has_component(kMob)) return true;
+    if ((ent1.has_component(kFlower) && ent2.mob_id == MobID::kTargetDummy) ||
+        (ent2.has_component(kFlower) && ent1.mob_id == MobID::kTargetDummy)) {
+        return true;
+    }
     return false;
 }
 
 static void _pickup_drop(Simulation *sim, Entity &player, Entity &drop) {
     if (!sim->ent_alive(player.parent)) return;
     if (drop.immunity_ticks > 0) return;
-
     for (uint32_t i = 0; i <  player.loadout_count + MAX_SLOT_COUNT; ++i) {
         if (player.loadout_ids[i] != PetalID::kNone) continue;
         player.set_loadout_ids(i, drop.drop_id);
@@ -77,7 +84,7 @@ void on_collide(Simulation *sim, Entity &ent1, Entity &ent2) {
     Vector separation(ent1.x - ent2.x, ent1.y - ent2.y);
     float dist = min_dist - separation.magnitude();
     if (dist < 0) return;
-    if (NO(kDrop) && NO(kWeb) && NO(kChat)) {
+    if (NO(kDrop) && NO(kWeb) && NO(kChat) && NO(kPoisonWeb)) {
         if (separation.x == 0 && separation.y == 0)
             separation.unit_normal(frand() * 2 * M_PI);
         else
@@ -106,13 +113,28 @@ void on_collide(Simulation *sim, Entity &ent1, Entity &ent2) {
         if (ent2.health == 0) sim->request_delete(ent2.id);
     }
 
+
     if (ent1.has_component(kDrop) && ent2.has_component(kFlower)) 
         _pickup_drop(sim, ent2, ent1);
     if (ent2.has_component(kDrop) && ent1.has_component(kFlower))
         _pickup_drop(sim, ent1, ent2);
 
     if (ent1.has_component(kWeb) && !ent2.has_component(kPetal) && !ent2.has_component(kDrop))
-        ent2.speed_ratio = 0.5;
+        ent2.speed_ratio *= 0.75;
     if (ent2.has_component(kWeb) && !ent1.has_component(kPetal) && !ent1.has_component(kDrop))
-        ent1.speed_ratio = 0.5;
+        ent1.speed_ratio *= 0.75;
+    if (ent1.has_component(kPoisonWeb) && !ent2.has_component(kPetal) && !ent2.has_component(kDrop)) {
+        ent2.speed_ratio *= 0.75;
+        if (ent2.poison_ticks == 0) {
+            ent2.poison_ticks = TPS / 2;
+            inflict_damage(sim, sim->get_ent(ent1.parent).parent, ent2.id, 5 /2 , DamageType::kPoison);
+        }
+    }
+    if (ent2.has_component(kPoisonWeb) && !ent1.has_component(kPetal) && !ent1.has_component(kDrop)) {
+        ent1.speed_ratio *= 0.75;
+        if (ent1.poison_ticks == 0) {
+            ent1.poison_ticks = TPS / 2;
+            inflict_damage(sim, sim->get_ent(ent2.parent).parent, ent1.id, 5 / 2  , DamageType::kPoison);
+        }
+    }
 }

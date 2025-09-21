@@ -676,7 +676,6 @@ void draw_static_mob(MobID::T mob_id, Renderer &ctx, MobRenderAttributes attr) {
             draw_static_flower(ctx, attr.flower_attrs);
             break;
         };
-        #ifdef DEV
         case MobID::kTargetDummy:
             SET_BASE_COLOR(0xff999999);
             ctx.round_line_cap();
@@ -721,7 +720,23 @@ void draw_static_mob(MobID::T mob_id, Renderer &ctx, MobRenderAttributes attr) {
             ctx.set_line_width(0.5);
             ctx.stroke();
             break;
-        #endif
+        case MobID::kTank:
+            ctx.set_fill(0xff999999);
+            ctx.set_stroke(0xff727272);
+            ctx.set_line_width(0.15 * radius);
+            ctx.begin_path();
+            ctx.rect(0, -radius * 0.9 / 2, 1.8 * radius, radius * 0.9);
+            ctx.fill();
+            ctx.stroke();
+            SET_BASE_COLOR(0xffc0c0c0);
+            ctx.set_fill(base_color);
+            ctx.set_stroke(Renderer::HSV(base_color, 0.8));
+            ctx.set_line_width(0.15 * radius);
+            ctx.begin_path();
+            ctx.arc(0, 0, radius);
+            ctx.fill();
+            ctx.stroke();
+            break;
         default:
             assert(!"Didn't cover mob render");
             break;

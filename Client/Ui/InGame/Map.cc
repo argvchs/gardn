@@ -8,42 +8,75 @@
 
 using namespace Ui;
 
-Minimap::Minimap(float w) : Element(w, w*ARENA_HEIGHT/ARENA_WIDTH, {}) {}
+Minimap::Minimap(float w) : Element(w, w* ARENA_HEIGHT / ARENA_WIDTH, {}) {}
 
-void Minimap::on_render(Renderer &ctx) {
+void Minimap::on_render(Renderer& ctx) {
+    // 绘制地图边框
     ctx.set_line_width(7);
     ctx.set_stroke(0xff444444);
-    ctx.stroke_rect(-width/2,-height/2,width,height);
-    ctx.translate(-width/2,-height/2);
-    ctx.scale(width/ARENA_WIDTH);
-    for (ZoneDefinition const &def : MAP_DATA) {
+    ctx.stroke_rect(-width / 2, -height / 2, width, height);
+
+    ctx.translate(-width / 2, -height / 2);
+    ctx.scale(width / ARENA_WIDTH);
+
+    // 绘制地图区域
+    for (ZoneDefinition const& def : MAP_DATA) {
         ctx.set_fill(def.color);
         ctx.fill_rect(def.left, def.top, def.right - def.left, def.bottom - def.top);
-        ctx.translate((def.left+def.right)/2,(def.top+def.bottom)/2);
-        ctx.draw_text(def.name, { .size = (def.bottom-def.top)/2 });
-        ctx.translate(-(def.left+def.right)/2,-(def.top+def.bottom)/2);
     }
-    if (Game::in_game()) {
-        Entity const &camera = Game::simulation.get_ent(Game::camera_id);
-        ctx.set_fill(0xffffe763);
-        ctx.set_stroke(Renderer::HSV(0xffffe763, 0.8));
-        ctx.set_line_width(ARENA_WIDTH / 120);
-        ctx.begin_path();
-        ctx.arc(camera.camera_x, camera.camera_y, ARENA_WIDTH / 40);
-        ctx.fill();
-        ctx.stroke();
-    }
+
+    if (!Game::in_game()) return;
+
+    Simulation& sim = Game::simulation;
+    Entity const& camera = sim.get_ent(Game::camera_id);
+
+    // 绘制靶子
+    sim.for_each<kMob>([&](Simulation*, Entity const& ent) {
+        if (ent.mob_id == MobID::kTargetDummy) {
+            uint32_t color = FLOWER_COLORS[ColorID::kRed];
+            ctx.set_fill(color);  
+            ctx.set_stroke(Renderer::HSV(color, 0.8));
+            ctx.set_line_width(ARENA_WIDTH / 120);
+            ctx.begin_path();
+            ctx.arc(ent.x, ent.y, ARENA_WIDTH / 60);
+            ctx.fill();
+            ctx.stroke();
+        }
+        });
+
+    sim.for_each<kFlower>([&](Simulation*, Entity const& ent) {
+        if (ent.id != camera.player && ent.team == camera.team) {
+            uint32_t color = FLOWER_COLORS[ent.color];
+            ctx.set_fill(color);
+            ctx.set_stroke(Renderer::HSV(color, 0.8));
+            ctx.set_line_width(ARENA_WIDTH / 120);
+            ctx.begin_path();
+            ctx.arc(ent.x, ent.y, ARENA_WIDTH / 60);
+            ctx.fill();
+            ctx.stroke();
+        }
+        });
+
+    // 绘制摄像机自己在最前面
+    ctx.set_fill(0xffffe763);
+    ctx.set_stroke(Renderer::HSV(0xffffe763, 0.8));
+    ctx.set_line_width(ARENA_WIDTH / 120);
+    ctx.begin_path();
+    ctx.arc(camera.camera_x, camera.camera_y, ARENA_WIDTH / 60);
+    ctx.fill();
+    ctx.stroke();
 }
 
-Element *Ui::make_minimap() {
-    Element *elt = new Ui::VContainer({
+
+Element* Ui::make_minimap() {
+    Element* elt = new Ui::VContainer({
         new Ui::StaticText(20, "Minimap"),
         new Ui::Minimap(300)
-    }, 20, 10, { 
-        .should_render = [](){ return Game::should_render_game_ui(); },
-        .h_justify = Style::Right,
-        .v_justify = Style::Bottom
-    });
+        }, 20, 10, {
+            .should_render = []() { return Game::should_render_game_ui(); },
+            .h_justify = Style::Right,
+            .v_justify = Style::Bottom
+        });
     elt->y = -50;
     return elt;
 }

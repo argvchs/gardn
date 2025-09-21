@@ -9,6 +9,7 @@
 #include <Shared/Entity.hh>
 #include <Shared/Map.hh>
 
+
 static void _update_client(Simulation *sim, Client *client) {
     if (client == nullptr) return;
     if (!client->verified) return;
@@ -26,6 +27,25 @@ static void _update_client(Simulation *sim, Client *client) {
     sim->spatial_hash.query(camera.camera_x, camera.camera_y, 960 / camera.fov + 50, 540 / camera.fov + 50, [&](Simulation *, Entity &ent){
         in_view.insert(ent.id);
     });
+    sim->for_each<kMob>([&](Simulation*, Entity &ent){
+    if (ent.mob_id == MobID::kTargetDummy) {
+        in_view.insert(ent.id);
+    }
+});
+    sim->for_each<kFlower>([&](Simulation*, Entity& ent) {
+        if (ent.id != client->camera && ent.team == camera.team) {
+            in_view.insert(ent.id);
+        }
+        });
+
+    sim->for_each<kChat>([&](Simulation*, Entity& chat_ent) {
+        if (!sim->ent_exists(chat_ent.parent)) return;
+        Entity const& parent_ent = sim->get_ent(chat_ent.parent);
+        if (parent_ent.team == camera.team) {
+            in_view.insert(chat_ent.id);
+        }
+        });
+
 
     for (EntityID const &i: client->in_view) {
         if (!in_view.contains(i)) {
@@ -64,14 +84,15 @@ void GameInstance::init() {
     #ifdef GAMEMODE_TDM
     team_manager.add_team(ColorID::kBlue);
     team_manager.add_team(ColorID::kRed);
-    #ifdef DEV
-    for (uint32_t i = 0; i < 2; ++i) {
-        Entity &mob = alloc_mob(&simulation, MobID::kTargetDummy, lerp(MAP_DATA[3].left, MAP_DATA[3].right, frand()), lerp(MAP_DATA[3].top, MAP_DATA[3].bottom, frand()), team_manager.teams[1]);
+    for (uint32_t i = 0; i < 5; ++i) {
+        float x = lerp(MAP_DATA[3].left, MAP_DATA[3].right, (i + 0.5f) / 5.0f);
+        float y = lerp(MAP_DATA[3].top, MAP_DATA[3].bottom, frand()); // 纵向仍随机
+        Entity& mob = alloc_mob(&simulation, MobID::kTargetDummy, x, y, team_manager.teams[1]);
         mob.set_parent(NULL_ENTITY);
         mob.set_color(simulation.get_ent(team_manager.teams[1]).color);
         mob.base_entity = NULL_ENTITY;
     }
-    #endif
+
     #endif
 }
 
@@ -79,7 +100,8 @@ void GameInstance::tick() {
     simulation.tick();
     for (Client *client : clients)
         _update_client(&simulation, client);
-    simulation.post_tick();
+   simulation.post_tick();
+ 
 }
 
 void GameInstance::add_client(Client *client) {
@@ -102,33 +124,41 @@ void GameInstance::add_client(Client *client) {
     #endif
     
     ent.set_fov(BASE_FOV);
-    ent.set_respawn_level(1);
-    #ifdef DEV
+    ent.set_respawn_level(30);
+
     if (simulation.get_ent(team).color == ColorID::kRed) {
         ent.set_respawn_level(99);
-        ent.set_inventory(loadout_slots_at_level(ent.respawn_level) - 1, PetalID::kCorruption);
-        for (uint32_t i = 0; i < loadout_slots_at_level(ent.respawn_level) - 1; ++i)
-            ent.set_inventory(i, PetalID::kStinger);
+
+        // 固定顺序的花瓣
+        std::vector<PetalID::T> fixed_loadout = {
+            PetalID::kAzalea,
+            PetalID::kAzalea,
+            PetalID::kBubble,
+            PetalID::kTringer,
+            PetalID::kTringer,
+            PetalID::kTringer,
+            PetalID::kPoisonPeas2,
+            PetalID::kSalt,
+            PetalID::kCorruption
+        };
+
+        // 填充角色背包
+        for (uint32_t i = 0; i < fixed_loadout.size(); ++i) {
+            ent.set_inventory(i, fixed_loadout[i]);
+        }
     }
     else {
         for (uint32_t i = 0; i < loadout_slots_at_level(ent.respawn_level); ++i)
             ent.set_inventory(i, PetalID::kBasic);
         ent.set_inventory(loadout_slots_at_level(ent.respawn_level), PetalID::kRose);
+        ent.set_inventory(loadout_slots_at_level(ent.respawn_level) + 1, PetalID::kBubble);
 
         if (frand() < 0.0001 && PetalTracker::get_count(&simulation, PetalID::kUniqueBasic) == 0)
             ent.set_inventory(0, PetalID::kUniqueBasic);
     }
         for (uint32_t i = 0; i < loadout_slots_at_level(ent.respawn_level); ++i)
             PetalTracker::add_petal(&simulation, ent.inventory[i]);
-    #else
-    for (uint32_t i = 0; i < loadout_slots_at_level(ent.respawn_level); ++i)
-        ent.set_inventory(i, PetalID::kBasic);
-    ent.set_inventory(loadout_slots_at_level(ent.respawn_level), PetalID::kRose);
-    if (frand() < 0.0001 && PetalTracker::get_count(&simulation, PetalID::kUniqueBasic) == 0)
-        ent.set_inventory(0, PetalID::kUniqueBasic);
-    for (uint32_t i = 0; i < loadout_slots_at_level(ent.respawn_level); ++i)
-        PetalTracker::add_petal(&simulation, ent.inventory[i]);
-    #endif
+   
     client->camera = ent.id;
     client->seen_arena = 0;
 }
@@ -147,4 +177,15 @@ void GameInstance::remove_client(Client *client) {
         simulation.request_delete(client->camera);
     }
     client->game = nullptr;
+}
+
+void GameInstance::broadcast_message(std::string const& msg) {
+    for (Client* client : clients) {
+
+        Writer writer(Server::OUTGOING_PACKET);
+        writer.write<uint8_t>(Clientbound::kBroadcast); // 新增的枚举类型
+        writer.write<std::string>(msg);
+
+        client->send_packet(writer.packet, writer.at - writer.packet);
+    }
 }

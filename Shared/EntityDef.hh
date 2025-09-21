@@ -17,6 +17,7 @@ typedef uint16_t game_tick_t;
     COMPONENT(Drop) \
     COMPONENT(Segmented) \
     COMPONENT(Web) \
+    COMPONENT(PoisonWeb) \
     COMPONENT(Score) \
     COMPONENT(Name) \
     COMPONENT(Chat)
@@ -81,6 +82,7 @@ SINGLE(Drop, drop_id, PetalID::T)
 #define FIELDS_Segmented
 
 #define FIELDS_Web
+#define FIELDS_PoisonWeb
 
 #define FIELDS_Score \
 SINGLE(Score, score, uint32_t)

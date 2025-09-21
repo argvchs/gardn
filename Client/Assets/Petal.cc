@@ -904,6 +904,108 @@ void draw_static_petal_single(PetalID::T id, Renderer &ctx) {
             ctx.fill();
             ctx.stroke();
             break;
+        case PetalID::kCorruption:
+            ctx.set_fill(0xffcf235f);
+            ctx.move_to(0.26, -23);
+            ctx.partial_arc(0.2410425265718459, 3.36, 26.36, -1.5700771509579343, -1.69406129780568, true);
+
+            // 曲线路径
+            ctx.bcurve_to(-7.74, -22.2, -12, -20.2, -15.56, -16.8);
+            ctx.bcurve_to(-18.38, -14.02, -20.26, -10.58, -20.7, -6.42);
+            ctx.bcurve_to(-21.22, -1.4, -19.64, 3.6, -16.42, 6.4);
+            ctx.bcurve_to(-15.38, 7.52, -14.94, 8.62, -14.96, 10.2);
+            ctx.bcurve_to(-15, 12.7, -14.82, 15.2, -14.7, 17.86);
+            ctx.bcurve_to(-11.5, 15.96, -8.42, 14.16, -5.3, 12.32);
+            ctx.bcurve_to(-3.44, 15.58, -1.64, 18.76, 0.24, 22.04);
+            ctx.bcurve_to(2.08, 18.78, 3.88, 15.62, 5.68, 12.4);
+            ctx.bcurve_to(8.68, 14.2, 11.64, 15.96, 14.7, 17.8);
+            ctx.bcurve_to(14.78, 15.22, 14.96, 13.3, 14.88, 10.42);
+            ctx.bcurve_to(14.82, 8.74, 15.16, 7.42, 16.44, 6.42);
+            ctx.bcurve_to(16.84, 6.1, 17.16, 5.6, 17.48, 5.16);
+            ctx.bcurve_to(20.62, 0.82, 21.7, -4.02, 20.1, -9.36);
+            ctx.bcurve_to(18.62, -14.3, 15.42, -17.66, 11.34, -20.06);
+            ctx.bcurve_to(-0.16, -23.02, -0.88, -23.02, -0.72, -23.02);
+
+            // 小曲线路径 1
+            ctx.move_to(12.88, -7);
+            ctx.bcurve_to(15.62, -7.02, 16.86, -5.32, 16.28, -2.36);
+            ctx.bcurve_to(15.62, 1.04, 12.8, 3.52, 9.78, 3.36);
+            ctx.bcurve_to(6.52, 3.18, 3.88, 0.5, 3.54, -3);
+            ctx.bcurve_to(3.52, -3.28, 3.6, -3.7, 3.78, -3.84);
+            ctx.bcurve_to(5.4, -5.14, 10.74, -6.98, 12.86, -7);
+
+            // 小曲线路径 2
+            ctx.move_to(-12.28, -7);
+            ctx.bcurve_to(-10.2, -6.86, -7.8, -5.86, -5.42, -4.74);
+            ctx.bcurve_to(-5.06, -1.56, -4.74, -1.56, -4.38, 0.22);
+            ctx.bcurve_to(-3.48, 0.02, -3.44, 1.32, -3.56, 1.46);
+            ctx.bcurve_to(-4.14, 2.16, -7.06, 4.46, -10.1, 4.3);
+            ctx.bcurve_to(-13.52, 4.12, -16.12, 0.36, -16.38, -3.3);
+            ctx.bcurve_to(-16.54, -5.82, -15.36, -7.08, -12.28, -7.06);
+
+            // 小曲线路径 3
+            ctx.move_to(0, 1.56);
+            ctx.bcurve_to(1.14, 4.34, 2.2, 6.92, 3.28, 9.62);
+            ctx.line_to(-3.28, 9.62);
+            ctx.bcurve_to(-2.2, 6.94, -1.12, 4.4, 0, 1.56);
+
+            ctx.fill();
+            break;
+        case PetalID::kPoisonWeb:
+            ctx.set_fill(0xffce76db);
+            ctx.set_stroke(0xffa760b1);
+            ctx.round_line_cap();
+            ctx.round_line_join();
+            ctx.set_line_width(3);
+            ctx.begin_path();
+            ctx.move_to(11.00, 0.00);
+            ctx.qcurve_to(4.32, 3.14, 3.40, 10.46);
+            ctx.qcurve_to(-1.65, 5.08, -8.90, 6.47);
+            ctx.qcurve_to(-5.34, -0.00, -8.90, -6.47);
+            ctx.qcurve_to(-1.65, -5.08, 3.40, -10.46);
+            ctx.qcurve_to(4.32, -3.14, 11.00, 0.00);
+            ctx.fill();
+            ctx.stroke();
+            break;
+        case PetalID::kDestroyerBullet:
+        case PetalID::kBullet:
+            ctx.set_fill(0xffc0c0c0);
+            ctx.set_stroke(0xff909090);
+            ctx.set_line_width(r * 0.15);
+            ctx.begin_path();
+            ctx.arc(0, 0, r);
+            ctx.fill();
+            ctx.stroke();
+            break;
+        case PetalID::kTankEgg:
+            ctx.set_fill(0xffc0c0c0);
+            ctx.set_stroke(0xff909090);
+            ctx.begin_path();
+            ctx.ellipse(0, 0, r * 0.95, r * 1.35);
+            ctx.fill();
+            ctx.set_line_width(3);
+            ctx.stroke();
+            break;
+        case PetalID::kDrone: {
+            ctx.set_fill(0xffc0c0c0);
+            ctx.set_stroke(0xff909090);
+            float angle_offset = -M_PI / 2; // 顶点朝上
+            ctx.begin_path();
+            for (int i = 0; i < 3; i++) {
+                float angle = i * 2.0f * M_PI / 3.0f + angle_offset;
+                float x = r * cos(angle);
+                float y = r * sin(angle);
+                if (i == 0)
+                    ctx.move_to(x, y);
+                else
+                    ctx.line_to(x, y);
+            }
+            ctx.close_path();
+            ctx.fill();
+            ctx.set_line_width(r * 0.15);
+            ctx.stroke();
+            break;
+        }
         #ifdef DEV
         case PetalID::kM28:
             ctx.begin_path();
@@ -1809,53 +1911,7 @@ void draw_static_petal_single(PetalID::T id, Renderer &ctx) {
             ctx.fill();
             ctx.stroke();
             break;
-        case PetalID::kCorruption:
-            ctx.set_fill(0xffcf235f);
-            ctx.move_to(0.26, -23);
-            ctx.partial_arc(0.2410425265718459, 3.36, 26.36, -1.5700771509579343, -1.69406129780568, true);
-
-            // 曲线路径
-            ctx.bcurve_to(-7.74, -22.2, -12, -20.2, -15.56, -16.8);
-            ctx.bcurve_to(-18.38, -14.02, -20.26, -10.58, -20.7, -6.42);
-            ctx.bcurve_to(-21.22, -1.4, -19.64, 3.6, -16.42, 6.4);
-            ctx.bcurve_to(-15.38, 7.52, -14.94, 8.62, -14.96, 10.2);
-            ctx.bcurve_to(-15, 12.7, -14.82, 15.2, -14.7, 17.86);
-            ctx.bcurve_to(-11.5, 15.96, -8.42, 14.16, -5.3, 12.32);
-            ctx.bcurve_to(-3.44, 15.58, -1.64, 18.76, 0.24, 22.04);
-            ctx.bcurve_to(2.08, 18.78, 3.88, 15.62, 5.68, 12.4);
-            ctx.bcurve_to(8.68, 14.2, 11.64, 15.96, 14.7, 17.8);
-            ctx.bcurve_to(14.78, 15.22, 14.96, 13.3, 14.88, 10.42);
-            ctx.bcurve_to(14.82, 8.74, 15.16, 7.42, 16.44, 6.42);
-            ctx.bcurve_to(16.84, 6.1, 17.16, 5.6, 17.48, 5.16);
-            ctx.bcurve_to(20.62, 0.82, 21.7, -4.02, 20.1, -9.36);
-            ctx.bcurve_to(18.62, -14.3, 15.42, -17.66, 11.34, -20.06);
-            ctx.bcurve_to(-0.16, -23.02, -0.88, -23.02, -0.72, -23.02);
-
-            // 小曲线路径 1
-            ctx.move_to(12.88, -7);
-            ctx.bcurve_to(15.62, -7.02, 16.86, -5.32, 16.28, -2.36);
-            ctx.bcurve_to(15.62, 1.04, 12.8, 3.52, 9.78, 3.36);
-            ctx.bcurve_to(6.52, 3.18, 3.88, 0.5, 3.54, -3);
-            ctx.bcurve_to(3.52, -3.28, 3.6, -3.7, 3.78, -3.84);
-            ctx.bcurve_to(5.4, -5.14, 10.74, -6.98, 12.86, -7);
-
-            // 小曲线路径 2
-            ctx.move_to(-12.28, -7);
-            ctx.bcurve_to(-10.2, -6.86, -7.8, -5.86, -5.42, -4.74);
-            ctx.bcurve_to(-5.06, -1.56, -4.74, -1.56, -4.38, 0.22);
-            ctx.bcurve_to(-3.48, 0.02, -3.44, 1.32, -3.56, 1.46);
-            ctx.bcurve_to(-4.14, 2.16, -7.06, 4.46, -10.1, 4.3);
-            ctx.bcurve_to(-13.52, 4.12, -16.12, 0.36, -16.38, -3.3);
-            ctx.bcurve_to(-16.54, -5.82, -15.36, -7.08, -12.28, -7.06);
-
-            // 小曲线路径 3
-            ctx.move_to(0, 1.56);
-            ctx.bcurve_to(1.14, 4.34, 2.2, 6.92, 3.28, 9.62);
-            ctx.line_to(-3.28, 9.62);
-            ctx.bcurve_to(-2.2, 6.94, -1.12, 4.4, 0, 1.56);
-
-            ctx.fill();
-            break;
+        
         }
         /* case PetalID::kMagicStick:
             ctx.beginPath();

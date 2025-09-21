@@ -17,7 +17,7 @@ void Simulation::on_tick() {
                 ent.x.step(amt);
                 ent.y.step(amt);
             }
-            if (ent.has_component(kDrop) || ent.has_component(kWeb) || ent.has_component(kChat)) {
+            if (ent.has_component(kDrop) || ent.has_component(kWeb) || ent.has_component(kPoisonWeb) || ent.has_component(kChat)) {
                 if (ent.lifetime < TPS)
                     LERP(ent.animation, 1, amt * 0.75)
                 else ent.animation = 1;

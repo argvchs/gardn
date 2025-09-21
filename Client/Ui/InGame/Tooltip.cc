@@ -18,7 +18,7 @@ static void make_petal_tooltip(PetalID::T id) {
     PetalData const &d = PETAL_DATA[id];
     PetalAttributes const &a = d.attributes;
     std::string rld_str = d.reload == 0 ? "" :
-        a.secondary_reload == 0 ? std::format("{:g}s ⟳", d.reload) : 
+        a.secondary_reload == 0 ? std::format("{:g}s ⟳", d.reload) :
         std::format("{:g}s + {:g}s ⟳", d.reload, a.secondary_reload);
     //std::cout << Renderer::get_ascii_text_size(rld_str.c_str()) << '\n';
     Element *tooltip = new Ui::VContainer({
@@ -49,7 +49,7 @@ static void make_petal_tooltip(PetalID::T id) {
         }, 0, 0, { .h_justify = Style::Left }) : nullptr,
         a.poison_damage.damage ? new Ui::HContainer({
             new Ui::StaticText(12, "Poison: ", { .fill = 0xffce76db, .h_justify = Style::Left }),
-            new Ui::StaticText(12, std::format("{:g}", a.poison_damage.damage) + (a.poison_damage.time ? std::format(" ({:.2g}/s)", a.poison_damage.damage / a.poison_damage.time) : ""), { .fill = 0xffffffff, .h_justify = Style::Left })
+            new Ui::StaticText(12, std::format("{:g}", a.poison_damage.damage * a.poison_damage.time) + (a.poison_damage.time ? std::format(" ({:.2g}/s)", a.poison_damage.damage ) : ""), { .fill = 0xffffffff, .h_justify = Style::Left })
         }, 0, 0, { .h_justify = Style::Left }) : nullptr,
         a.spawns != MobID::kNumMobs ? new Ui::HContainer({
             new Ui::StaticText(12, "Contents: ", { .fill = 0xffd2eb34, .h_justify = Style::Left }),
@@ -57,6 +57,34 @@ static void make_petal_tooltip(PetalID::T id) {
             new Ui::StaticText(12, RARITY_NAMES[MOB_DATA[a.spawns].rarity], { .fill = RARITY_COLORS[MOB_DATA[a.spawns].rarity], .h_justify = Style::Left }),
             new Ui::StaticText(12, ")", { .fill = 0xffffffff, .h_justify = Style::Left }),
         }, 0, 0, { .h_justify = Style::Left }) : nullptr,
+        a.extra_health ? new Ui::HContainer({
+            new Ui::StaticText(12, "Flower Health: ", {.fill = 0xff66ff66, .h_justify = Style::Left }),
+            new Ui::StaticText(12, std::format("+{:g}", a.extra_health), {.fill = 0xffffffff, .h_justify = Style::Left })
+        }, 0, 0, {.h_justify = Style::Left }) : nullptr,
+        a.movement_speed ? new Ui::HContainer({
+            new Ui::StaticText(12, "Movement Speed: ", {.fill = 0xffcde23b, .h_justify = Style::Left }),
+            new Ui::StaticText(12, std::format("+{:g}%",  a.movement_speed * 100), {.fill = 0xffffffff, .h_justify = Style::Left })
+        }, 0, 0, {.h_justify = Style::Left }) : nullptr,
+        a.reduce_reload ? new Ui::HContainer({
+            new Ui::StaticText(12, "Reload: ", {.fill = 0xffcde23b, .h_justify = Style::Left }),
+            new Ui::StaticText(12, std::format("{:g}%", (a.reduce_reload - 1) * 100), {.fill = 0xffffffff, .h_justify = Style::Left })
+        }, 0, 0, {.h_justify = Style::Left }) : nullptr,
+        a.extra_range ? new Ui::HContainer({
+            new Ui::StaticText(12, "Attack Range: ", {.fill = 0xffcde23b, .h_justify = Style::Left }),
+            new Ui::StaticText(12, std::format("+{:g}", a.extra_range ), {.fill = 0xffffffff, .h_justify = Style::Left })
+        }, 0, 0, {.h_justify = Style::Left }) : nullptr,
+        a.extra_vision ? new Ui::HContainer({
+            new Ui::StaticText(12, "Extra Vision: ", {.fill = 0xffcde23b, .h_justify = Style::Left }),
+            new Ui::StaticText(12, std::format("{:g}%", 1 / (1 - a.extra_vision) * 100), {.fill = 0xffffffff, .h_justify = Style::Left })
+        }, 0, 0, {.h_justify = Style::Left }) : nullptr,
+        a.armor ? new Ui::HContainer({
+            new Ui::StaticText(12, "Armor: ", {.fill = 0xffcde23b, .h_justify = Style::Left }),
+            new Ui::StaticText(12, std::format("{:g}", a.armor), {.fill = 0xffffffff, .h_justify = Style::Left })
+        }, 0, 0, {.h_justify = Style::Left }) : nullptr,
+        a.controls ? new Ui::HContainer({
+            new Ui::StaticText(12, "Controls: ", {.fill = 0xffcde23b, .h_justify = Style::Left }),
+            new Ui::StaticText(12, PETAL_DATA[a.controls].name, {.fill = 0xffffffff, .h_justify = Style::Left })
+        }, 0, 0, {.h_justify = Style::Left }) : nullptr,
         /* new Ui::Element(0,10),
         new Ui::StaticText(12,
         "Radius: " + std::format("{:g}", d.radius), { .fill =

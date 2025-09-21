@@ -12,7 +12,7 @@ inline uint32_t const ARENA_WIDTH = 40000;
 inline uint32_t const ARENA_HEIGHT = 4000;
 #endif
 
-inline uint32_t const MAX_SLOT_COUNT = 12;
+inline uint32_t const MAX_SLOT_COUNT = 9;
 inline uint32_t const LEVELS_PER_EXTRA_SLOT = 10;
 inline uint32_t const LEADERBOARD_SIZE = 10;
 inline uint32_t const MAX_PETALS_IN_CLUMP = 5;
@@ -80,14 +80,19 @@ namespace PetalID {
         kBone,
         kYucca,
         kCorn,
+        kCorruption,
         #ifdef DEV
         kM28,
         kCrown,
-        kCorruption,
         #endif
         kPoisonPeas2,
         kQuint,
         kTriWing,
+        kPoisonWeb,
+        kBullet,
+        kTankEgg,
+        kDrone,
+        kDestroyerBullet,
         kTriAzalea,
         kDuoLeaf,
         kNumPetals
@@ -122,6 +127,7 @@ namespace MobID {
         kSquare,
         kDigger,
         kTargetDummy,
+        kTank,
         kNumMobs
     };
 };
@@ -230,6 +236,13 @@ struct PetalAttributes {
     uint8_t spawns = MobID::kNumMobs;
     uint8_t spawn_count = 0;
     uint8_t equipment = EquipmentFlags::kNone;
+    float extra_health = 0;
+    float movement_speed = 0;
+    float reduce_reload = 0;
+    float extra_range = 0;
+    float extra_vision = 0;
+    float armor = 0;
+    PetalID::T controls = PetalID::kNone;
 };
 
 struct PetalData {

@@ -18,4 +18,6 @@ public:
     void tick();
     void add_client(Client *);
     void remove_client(Client *);
+    void broadcast_message(const std::string& msg);
+    TeamManager& get_team_manager() { return team_manager; };
 };

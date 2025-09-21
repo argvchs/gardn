@@ -21,6 +21,6 @@ char const *RARITY_NAMES[RarityID::kNumRarities] = {
 };
 
 char const SLOT_KEYBINDS[MAX_SLOT_COUNT] = 
-    {'1','2','3','4','5','6','7','8','9','0','-','='};
+    {'1','2','3','4','5','6','7','8','9'};
 uint8_t const SLOT_KEYCODES[MAX_SLOT_COUNT] = 
-    {'1','2','3','4','5','6','7','8','9','0',189,187};
+    {'1','2','3','4','5','6','7','8','9'};
