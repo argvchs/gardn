@@ -253,21 +253,21 @@ void Game::tick(double time) {
         if (!Game::show_chat) {
             if (Input::keys_held.contains('`')) {
                 //process keybind commands
-                if (Input::keys_held_this_tick.contains('K'))
-                    Game::send_chat("/kill");
-                else if (Input::keys_held_this_tick.contains('E'))
-                    Game::send_chat("/tpto");
-                else if (Input::keys_held_this_tick.contains('Q'))
+                if (Input::keys_held_this_tick.contains('Q'))
                     for (uint32_t i = 0; i < Game::loadout_count + MAX_SLOT_COUNT; ++i)
                         Game::delete_petal(i);
-                else if (Input::keys_held_this_tick.contains('N'))
-                    Game::send_chat(std::format("/setxp {}", level_to_score(MAX_LEVEL)));
-                else if (Input::keys_held_this_tick.contains('H'))
-                    Game::send_chat("/heal");
+                else if (Input::keys_held_this_tick.contains('E'))
+                    Game::send_chat("/tpto");
+                else if (Input::keys_held_this_tick.contains('K'))
+                    Game::send_chat("/kill");
                 else if (Input::keys_held_this_tick.contains('F'))
                     Game::send_chat(std::format("/spawnallyto {}", MobID::T(MobID::kMassiveBeetle)));
                 else if (Input::keys_held_this_tick.contains('G'))
                     Game::send_chat("/ghost");
+                else if (Input::keys_held_this_tick.contains('H'))
+                    Game::send_chat("/heal");
+                else if (Input::keys_held_this_tick.contains('S'))
+                    Game::send_chat(std::format("/setxp {}", level_to_score(MAX_LEVEL)));
             } else {
                 //process keybind petal switches
                 if (Input::keys_held_this_tick.contains('X'))
