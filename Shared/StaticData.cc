@@ -314,7 +314,7 @@ struct PetalData const PETAL_DATA[PetalID::kNumPetals] = {
     {"Leaf", "Gathers energy from the sun to passively heal your flower",
         10.0, 8.0, 10.0, 1.0, 2, RarityID::kLegendary, {
         .clump_radius = 10,
-        .constant_heal = 2,
+        .constant_heal = 3,
         .icon_angle = -1
     }},
 };
