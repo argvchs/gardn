@@ -57,7 +57,7 @@ void draw_static_petal_single(PetalID::T id, Renderer &ctx) {
             break;
         }
         case PetalID::kLeaf:
-        case PetalID::kDuoLeaf:
+        case PetalID::kTriLeaf:
             ctx.set_fill(0xff39b54a);
             ctx.set_stroke(0xff2e933c);
             ctx.set_line_width(3);

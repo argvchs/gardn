@@ -86,7 +86,7 @@ namespace PetalID {
         kDestroyerBullet,
         kSoil,
         kTriAzalea,
-        kDuoLeaf,
+        kTriLeaf,
         kNumPetals
     };
 };

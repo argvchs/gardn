@@ -1,4 +1,3 @@
-#include "Shared/StaticDefinitions.hh"
 #include <Client/Game.hh>
 
 #include <Client/Debug.hh>

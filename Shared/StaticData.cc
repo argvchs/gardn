@@ -1,4 +1,3 @@
-#include "Shared/StaticDefinitions.hh"
 #include <Shared/StaticData.hh>
 
 #include <cmath>
@@ -885,11 +884,11 @@ std::array<struct PetalData, PetalID::kNumPetals> const PETAL_DATA = {{
         .damage = 8.0,
         .radius = 10.0,
         .reload = 1.0,
-        .count = 2,
+        .count = 3,
         .rarity = RarityID::kLegendary,
         .attributes = {
             .clump_radius = 10,
-            .constant_heal = 3,
+            .constant_heal = 4.5,
             .icon_angle = -1
         }
     },
@@ -905,7 +904,7 @@ std::array<struct MobData, MobID::kNumMobs> const MOB_DATA = {{
         .radius = {14.0},
         .xp = 1,
         .drops = {
-            PetalID::kLight, PetalID::kLeaf, PetalID::kDuoLeaf, PetalID::kTwin, PetalID::kRice, PetalID::kTriplet, PetalID::kQuint, PetalID::kBone, PetalID::kSoil
+            PetalID::kLight, PetalID::kLeaf, PetalID::kTriLeaf, PetalID::kTwin, PetalID::kRice, PetalID::kTriplet, PetalID::kQuint, PetalID::kBone, PetalID::kSoil
         }, 
         .attributes = {}
     },
@@ -918,7 +917,7 @@ std::array<struct MobData, MobID::kNumMobs> const MOB_DATA = {{
         .radius = {14.0},
         .xp = 3,
         .drops = {
-            PetalID::kLight, PetalID::kLeaf, PetalID::kDuoLeaf, PetalID::kTwin, PetalID::kCorn, PetalID::kBone, PetalID::kTriplet, PetalID::kQuint, PetalID::kSoil
+            PetalID::kLight, PetalID::kLeaf, PetalID::kTriLeaf, PetalID::kTwin, PetalID::kCorn, PetalID::kBone, PetalID::kTriplet, PetalID::kQuint, PetalID::kSoil
         }, 
         .attributes = {}
     },
@@ -1084,7 +1083,7 @@ std::array<struct MobData, MobID::kNumMobs> const MOB_DATA = {{
         .radius = {35.0},
         .xp = 2,
         .drops = {
-            PetalID::kTwin, PetalID::kLeaf, PetalID::kDuoLeaf, PetalID::kPeas, PetalID::kTriplet, PetalID::kPoisonPeas, PetalID::kPoisonPeas2, PetalID::kQuint
+            PetalID::kTwin, PetalID::kLeaf, PetalID::kTriLeaf, PetalID::kPeas, PetalID::kTriplet, PetalID::kPoisonPeas, PetalID::kPoisonPeas2, PetalID::kQuint
         },
         .attributes = {
             .segments = 10
