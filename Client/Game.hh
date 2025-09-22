@@ -1,7 +1,6 @@
 #pragma once
 
 #include <Client/Render/Renderer.hh>
-#include <Client/Input.hh>
 #include <Client/Socket.hh>
 #include <Client/Ui/Ui.hh>
 #include <Client/StaticData.hh>
@@ -21,7 +20,7 @@ namespace Game {
     extern EntityID camera_id;
     extern EntityID player_id;
     extern std::string nickname;
-    extern std::string password;
+    extern std::string disconnect_message;
     extern std::array<uint8_t, PetalID::kNumPetals> seen_petals;
     extern std::array<uint8_t, MobID::kNumMobs> seen_mobs;
     
@@ -34,23 +33,33 @@ namespace Game {
 
     extern uint32_t respawn_level;
 
-    extern PetalID::T cached_loadout[2 * MAX_SLOT_COUNT];
+    extern std::array<PetalID::T, 2 * MAX_SLOT_COUNT> cached_loadout;
 
     extern uint8_t loadout_count;
     extern uint8_t simulation_ready;
     extern uint8_t on_game_screen;
     extern uint8_t show_debug;
-    extern uint8_t is_mobile;
 
-    extern uint8_t show_chat;
-    extern std::string chat_text;
+    // ----------------- Chat 相关 -----------------
+    struct ChatMsg {
+        EntityID sender;    // 发送者
+        std::string text;   // 消息内容
+    };
+
+    extern std::vector<ChatMsg> chats;   // 接收到的聊天消息（数据包方式管理）
+    extern std::string chat_text;        // 本地输入框绑定的文本
+    extern bool show_chat;            // 输入框显示标志
+
     struct BroadcastMessage {
         std::string text;
     };
 
+    extern std::string password;
+
     // 广播消息容器
     extern std::vector<BroadcastMessage> broadcasts;
 
+    
     void init();
     void reset();
     uint8_t alive();
@@ -65,6 +74,7 @@ namespace Game {
     void delete_petal(uint8_t);
     void swap_petals(uint8_t, uint8_t);
     void swap_all_petals();
-    void send_chat(std::string const &);
     void on_message(uint8_t *, uint32_t);
+    void poll_ui_event(Ui::ScreenEvent const &);
+    void send_chat(std::string const&);
 };

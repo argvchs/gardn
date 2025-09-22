@@ -1,12 +1,21 @@
 #pragma once
 
 #include <Client/Render/Renderer.hh>
-#include <Shared/Helpers.hh>
+
+#include <Helpers/Math.hh>
 
 #include <functional>
 #include <vector>
 
 namespace Ui {
+
+    struct ScreenEvent {
+        uint32_t id = (uint32_t)-1;
+        float x = 0;
+        float y = 0;
+        uint8_t press = 0;
+    };
+
     class Element;
 
     struct Style {
@@ -44,6 +53,7 @@ namespace Ui {
     protected:
         std::vector<Element *> children;
         Ui::Element *tooltip = nullptr;
+        uint32_t touch_id = (uint32_t)-1;
     public:
         Ui::Element *parent = nullptr;
         float width = 0;
@@ -56,10 +66,11 @@ namespace Ui {
         LerpFloat tooltip_animation;
         Ui::Style style;
 
-        uint8_t focus_state : 4 = 0;
+        uint8_t focus_state : 3 = 0;
         uint8_t visible : 1 = 1;
         uint8_t showed : 1 = 0;
         uint8_t rendering_tooltip : 1 = 0;
+        uint8_t focused : 1 = 0;
 
         Element(float = 0, float = 0, Style = {});
         void add_child(Element *);
@@ -70,7 +81,7 @@ namespace Ui {
         virtual void on_event(uint8_t);
         //std::function<void(Renderer &)> animate;
         virtual void refactor();
-        virtual void poll_events();
+        virtual void poll_events(ScreenEvent const &);
     };
 
     std::vector<Element *> const make_range(uint32_t, uint32_t, Element *(uint32_t));

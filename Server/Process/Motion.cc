@@ -11,20 +11,15 @@ void tick_entity_motion(Simulation *sim, Entity &ent) {
     }
     ent.velocity *= (1 - ent.friction);
     ent.velocity += (ent.acceleration * ent.speed_ratio);
-    ent.set_x(ent.x + ent.velocity.x + ent.collision_velocity.x);
-    ent.set_y(ent.y + ent.velocity.y + ent.collision_velocity.y);
+    ent.set_x(ent.get_x() + ent.velocity.x + ent.collision_velocity.x);
+    ent.set_y(ent.get_y() + ent.velocity.y + ent.collision_velocity.y);
     ent.collision_velocity *= 0.5;
     ent.velocity += ent.collision_velocity;
-    if (!ent.has_component(kPetal) && !ent.has_component(kWeb) && !ent.has_component(kPoisonWeb) && !ent.has_component(kChat)) {
-        ent.set_x(fclamp(ent.x, ent.radius, ARENA_WIDTH - ent.radius));
-        ent.set_y(fclamp(ent.y, ent.radius, ARENA_HEIGHT - ent.radius));
-    }
-    if (ent.has_component(kFlower)) {
-        if (ent.acceleration.x != 0 || ent.acceleration.y != 0)
-            ent.set_eye_angle(ent.acceleration.angle());
+    if (!ent.has_component(kPetal) && !ent.has_component(kWeb) && !ent.has_component(kPoisonWeb)) {
+        ent.set_x(fclamp(ent.get_x(), ent.get_radius(), ARENA_WIDTH - ent.get_radius()));
+        ent.set_y(fclamp(ent.get_y(), ent.get_radius(), ARENA_HEIGHT - ent.get_radius()));
     }
     //ent.acceleration.set(0,0);
     ent.collision_velocity.set(0,0);
     ent.speed_ratio = 1;
-    ent.acceleration.set_magnitude(5);
 }

@@ -23,7 +23,6 @@ struct AsymmetricBattle::AsymmetricBattleInternal {
     }
 
 
-
     void tick() {
         using namespace std::chrono;
 
@@ -43,8 +42,8 @@ struct AsymmetricBattle::AsymmetricBattleInternal {
             Simulation& sim = game_instance->simulation;
             auto& team_manager = game_instance->get_team_manager();
 
-            Entity& blue_team = sim.get_ent(team_manager.teams[0]);
-            Entity& red_team = sim.get_ent(team_manager.teams[1]);
+            Entity& blue_team = sim.get_ent(team_manager.get_team(0));
+            Entity& red_team = sim.get_ent(team_manager.get_team(1));
 
             uint32_t blue_count = blue_team.player_count;
             uint32_t red_count = red_team.player_count;
@@ -56,11 +55,11 @@ struct AsymmetricBattle::AsymmetricBattleInternal {
                 for (uint16_t i = 0; i < ENTITY_CAP; ++i) {
                     EntityID id(i, 0);
                     Entity& ent = sim.get_ent(id);
-                    Entity* cam = sim.ent_alive(ent.parent) ? &sim.get_ent(ent.parent) : nullptr;
+                    Entity* cam = sim.ent_alive(ent.get_parent()) ? &sim.get_ent(ent.get_parent()) : nullptr;
                     if (!ent.has_component(kFlower)) continue;
-                    if (ent.color != ColorID::kRed) continue;
+                    if (ent.get_color() != ColorID::kRed) continue;
 
-                    int score = ent.score;
+                    int score = ent.get_score();
                     if (score < lowest_score) {
                         lowest_score = score;
                         worst_player = &ent;
@@ -68,9 +67,10 @@ struct AsymmetricBattle::AsymmetricBattleInternal {
                 }
 
                 if (worst_player) {
-                    Entity& old_camera = sim.get_ent(worst_player->parent);
+                    Entity& old_camera = sim.get_ent(worst_player->get_parent());
                     old_camera.set_color(ColorID::kBlue);
                     old_camera.set_team(blue_team.id);
+                    old_camera.set_player(worst_player->id);
                     for (uint32_t i = 0; i < MAX_SLOT_COUNT * 2; ++i) {
                         worst_player->set_loadout_ids(i, PetalID::kNone);
                         old_camera.set_inventory(i, PetalID::kNone);
@@ -78,8 +78,7 @@ struct AsymmetricBattle::AsymmetricBattleInternal {
                     worst_player->set_color(ColorID::kBlue);
                     worst_player->set_team(blue_team.id);
                     worst_player->set_parent(old_camera.id);
-                    worst_player->score = 0;
-
+                    worst_player->set_score(4000);
                     worst_player->health = 0;
                     blue_team.player_count++;
                     red_team.player_count--;
@@ -94,12 +93,12 @@ struct AsymmetricBattle::AsymmetricBattleInternal {
                 for (uint16_t i = 0; i < ENTITY_CAP; ++i) {
                     EntityID id(i, 0);
                     Entity& ent = sim.get_ent(id);
-                    Entity* cam = sim.ent_alive(ent.parent) ? &sim.get_ent(ent.parent) : nullptr;
+                    Entity* cam = sim.ent_alive(ent.get_parent()) ? &sim.get_ent(ent.get_parent()) : nullptr;
 
                     if (!ent.has_component(kFlower)) continue;
-                    if (ent.color != ColorID::kBlue) continue;
+                    if (ent.get_color() != ColorID::kBlue) continue;
 
-                    int score = ent.score;
+                    int score = ent.get_score();
                     if (score < lowest_score) {
                         lowest_score = score;
                         worst_player = &ent;
@@ -107,11 +106,12 @@ struct AsymmetricBattle::AsymmetricBattleInternal {
                 }
 
                 if (worst_player) {
-                    Entity& old_camera = sim.get_ent(worst_player->parent);
+                    Entity& old_camera = sim.get_ent(worst_player->get_parent());
 
                     // 转换成红队
                     old_camera.set_color(ColorID::kRed);
                     old_camera.set_team(red_team.id);
+                    old_camera.set_player(worst_player->id);
                     for (uint32_t i = 0; i < MAX_SLOT_COUNT * 2; ++i) {
                         worst_player->set_loadout_ids(i, PetalID::kNone);
                         old_camera.set_inventory(i, PetalID::kNone);
@@ -119,9 +119,8 @@ struct AsymmetricBattle::AsymmetricBattleInternal {
                     worst_player->set_color(ColorID::kRed);
                     worst_player->set_team(red_team.id);
                     worst_player->set_parent(old_camera.id);
-                    worst_player->score = 0;
+                    worst_player->set_score(4000);
                     worst_player->health = 0;
-
                     blue_team.player_count--;
                     red_team.player_count++;
 
@@ -144,7 +143,7 @@ struct AsymmetricBattle::AsymmetricBattleInternal {
                 EntityID id(i, 0);
                 if (!sim.ent_exists(id)) continue;
                 Entity& ent = sim.get_ent(id);
-                if (ent.mob_id == MobID::kTargetDummy) {
+                if (ent.get_mob_id() == MobID::kTargetDummy) {
                     dummy_exists = true;
                     break;
                 }
@@ -227,7 +226,7 @@ struct AsymmetricBattle::AsymmetricBattleInternal {
             EntityID id(i, 0);
             Entity& ent = sim.get_ent(id);
             if (!ent.has_component(kFlower)) continue;
-            if (static_cast<int>(ent.color) != winner_color) {
+            if (static_cast<int>(ent.get_color()) != winner_color) {
                 ent.health = 0; // 直接改 health，和 killallmobs 命令一致
             }
         }

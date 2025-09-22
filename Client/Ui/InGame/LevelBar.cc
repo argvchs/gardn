@@ -4,7 +4,7 @@
 #include <Client/Ui/Extern.hh>
 #include <Shared/StaticData.hh>
 
-#include <cstdio>
+#include <format>
 #include <string>
 
 using namespace Ui;
@@ -14,7 +14,7 @@ LevelBar::LevelBar() : Element(300,40) {
     style.animate = [&](Element *elt, Renderer &ctx) {
         if (Game::alive()) {
             Entity &player = Game::simulation.get_ent(Game::player_id);
-            float xp = player.score;
+            float xp = Game::score;
             level = score_to_level(xp);
             xp -= level_to_score(level);
             xp = fclamp(xp / score_to_pass_level(level), 0, 1);
@@ -40,18 +40,9 @@ void LevelBar::on_render(Renderer &ctx) {
     ctx.move_to(-width / 2, 0);
     ctx.line_to(-width / 2 + width * ((float) progress), 0);
     ctx.stroke();
-    char text[64];
-    if (Game::alive()) {
-        Entity &player = Game::simulation.get_ent(Game::player_id);
-        if (player.has_component(kFlower) && player.ghost_mode) {
-            std::snprintf(text, 63, "Lvl %d Flower (ghost mode)", level);
-        } else {
-            std::snprintf(text, 63, "Lvl %d Flower", level);
-        }
-    } else {
-        std::snprintf(text, 63, "Lvl %d Flower", level);
-    }
-    ctx.draw_text(text, { .size = 16 });
+
+    std::string text = "Lvl " + std::to_string(level) + " Flower";
+    ctx.draw_text(text.c_str(), { .size = 16 });
     ctx.translate(0, -height/2 - 16);
     ctx.draw_text(Game::nickname.c_str(), { .size = 24 });
 }
@@ -63,12 +54,9 @@ Element *Ui::make_level_bar() {
             std::string format_string;
             if (Game::alive()) {
                 Entity &player = Game::simulation.get_ent(Game::player_id);
-                uint32_t level = score_to_level(player.score);
-                if (loadout_slots_at_level(level) < MAX_SLOT_COUNT) {
-                    level = div_round_up(level + 1, LEVELS_PER_EXTRA_SLOT) * LEVELS_PER_EXTRA_SLOT;
-                    if (level > MAX_LEVEL) level = MAX_LEVEL;
-                    format_string = std::format("Extra petal slot at level {}", level);
-                }
+                uint32_t level = score_to_level(Game::score);
+                if (loadout_slots_at_level(level) < MAX_SLOT_COUNT)
+                    format_string = std::format("Extra petal slot at level {}", div_round_up(level + 1, LEVELS_PER_EXTRA_SLOT) * LEVELS_PER_EXTRA_SLOT);
             }
             return format_string;
         }),

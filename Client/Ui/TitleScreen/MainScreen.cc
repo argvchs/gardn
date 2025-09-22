@@ -9,8 +9,11 @@
 #include <Client/Debug.hh>
 #include <Client/DOM.hh>
 #include <Client/Game.hh>
+#include <Client/Input.hh>
 
 #include <Shared/Config.hh>
+
+#include <format>
 
 using namespace Ui;
 
@@ -81,7 +84,7 @@ Element *Ui::make_title_info_box() {
                     .fill = 0xffffffff,
                     .should_render = [](){
                         if (!Game::simulation.ent_exists(Game::camera_id)) return false;
-                        return Game::simulation.get_ent(Game::camera_id).inventory[0] > PetalID::kBasic;
+                        return Game::simulation.get_ent(Game::camera_id).get_inventory(0) > PetalID::kBasic;
                     }
                 })
             }, 0, 0),
@@ -96,8 +99,10 @@ Element *Ui::make_title_info_box() {
             return Game::respawn_level > 1 ? 1 : 0;
         }
     );
-    elt->x = 0;
-    elt->y = 270;
+    elt->style.animate = [](Element *elt, Renderer &ctx) {
+        elt->x = 0;
+        elt->y = 270;
+    };
     return elt;
 }
 

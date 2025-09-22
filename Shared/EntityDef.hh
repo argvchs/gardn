@@ -19,8 +19,7 @@ typedef uint16_t game_tick_t;
     COMPONENT(Web) \
     COMPONENT(PoisonWeb) \
     COMPONENT(Score) \
-    COMPONENT(Name) \
-    COMPONENT(Chat)
+    COMPONENT(Name)
 
 #define PERFIELD \
 FIELDS_Physics \
@@ -33,8 +32,7 @@ FIELDS_Mob \
 FIELDS_Drop \
 FIELDS_Segmented \
 FIELDS_Score \
-FIELDS_Name \
-FIELDS_Chat
+FIELDS_Name
 
 #define FIELDS_Physics \
 SINGLE(Physics, x, Float) \
@@ -57,14 +55,12 @@ SINGLE(Relations, parent, EntityID) \
 SINGLE(Relations, color, uint8_t)
 
 #define FIELDS_Flower \
-SINGLE(Flower, eye_angle, float) \
 SINGLE(Flower, overlevel_timer, float) \
 SINGLE(Flower, loadout_count, uint8_t) \
 SINGLE(Flower, face_flags, uint8_t) \
 SINGLE(Flower, equip_flags, uint8_t) \
 MULTIPLE(Flower, loadout_ids, PetalID::T, 2 * MAX_SLOT_COUNT) \
-MULTIPLE(Flower, loadout_reloads, uint8_t, MAX_SLOT_COUNT) \
-SINGLE(Flower, ghost_mode, uint8_t) \
+MULTIPLE(Flower, loadout_reloads, uint8_t, MAX_SLOT_COUNT)
 
 #define FIELDS_Petal \
 SINGLE(Petal, petal_id, PetalID::T)
@@ -90,9 +86,6 @@ SINGLE(Score, score, uint32_t)
 #define FIELDS_Name \
 SINGLE(Name, name, std::string) \
 SINGLE(Name, nametag_visible, uint8_t)
-
-#define FIELDS_Chat \
-SINGLE(Chat, text, std::string)
 
 #ifdef SERVERSIDE
 #define PER_EXTRA_FIELD \
@@ -134,14 +127,10 @@ SINGLE(Chat, text, std::string)
     \
     SINGLE(zone, uint8_t, =0) \
     SINGLE(flags, uint8_t, =0) \
-    SINGLE(custom_flags, uint8_t, =0) \
     SINGLE(deletion_tick, uint8_t, =0) \
     SINGLE(despawn_tick, game_tick_t, =0) \
     SINGLE(secondary_reload, game_tick_t, =0) \
-    SINGLE(deleted_petals, circ_arr_t, ={}) \
-    \
-    SINGLE(chat_sent, EntityID, =NULL_ENTITY) \
-    SINGLE(chat_pos, uint8_t, =0)
+    SINGLE(deleted_petals, circ_arr_t, ={})
 #else
 #define PER_EXTRA_FIELD \
     SINGLE(last_damaged_time, double, =0) \

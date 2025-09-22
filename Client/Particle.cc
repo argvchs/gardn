@@ -24,13 +24,13 @@ void Particle::tick_title(Renderer &ctx, double dt) {
             continue;
         }
         RenderContext c(&ctx);
-        part.x += part.x_velocity * (dt / 1000);
-        part.angle += dt / 1000;
+        part.x += part.x_velocity * (dt / 1000) * Ui::scale;
+        part.angle += dt / 1000 * Ui::scale;
         ctx.translate(part.x, part.y + 12.5 * sin(Game::timestamp / 500 + part.sin_offset));
         ctx.scale(Ui::scale * part.radius);
         if (PETAL_DATA[part.id].attributes.rotation_style == PetalAttributes::kPassiveRot)
             ctx.rotate(part.angle);
-        if (part.id == PetalID::kPeas || part.id == PetalID::kPoisonPeas || part.id == PetalID::kPoisonPeas2)
+        if (part.id == PetalID::kPeas || part.id == PetalID::kPoisonPeas)
             draw_static_petal(part.id, ctx);
         else
             draw_static_petal_single(part.id, ctx);
@@ -75,7 +75,7 @@ void Particle::tick_game(Renderer &ctx, double dt) {
         part.y += part.y_velocity * dt / 1000;
         part.opacity = fclamp(part.opacity - dt / 1000, 0, 1);
         ctx.set_global_alpha(part.opacity);
-        ctx.set_fill(part.color);
+        ctx.set_fill(0x80ffffff);
         ctx.begin_path();
         ctx.arc(part.x,part.y,part.radius);
         ctx.fill();
@@ -88,20 +88,6 @@ void Particle::add_unique_particle(float x, float y) {
     part.y = y;
     part.radius = 4;
     part.opacity = 1;
-    part.color = 0x80000000;
-    Vector rand = Vector::rand(50);
-    part.x_velocity = rand.x;
-    part.y_velocity = rand.y;
-    game_particles.push_back(std::move(part));
-}
-
-void Particle::add_mythic_particle(float x, float y) {
-    GameParticleEntity part;
-    part.x = x;
-    part.y = y;
-    part.radius = 4;
-    part.opacity = 1;
-    part.color = 0x80ffffff;
     Vector rand = Vector::rand(50);
     part.x_velocity = rand.x;
     part.y_velocity = rand.y;

@@ -1,6 +1,7 @@
 #include <Client/Game.hh>
 
 #include <Client/Debug.hh>
+#include <Client/Input.hh>
 #include <Client/Particle.hh>
 #include <Client/Setup.hh>
 #include <Client/Storage.hh>
@@ -26,9 +27,10 @@ namespace Game {
     EntityID camera_id;
     EntityID player_id;
     std::string nickname;
-    std::string password;
+    std::string disconnect_message;
     std::array<uint8_t, PetalID::kNumPetals> seen_petals;
     std::array<uint8_t, MobID::kNumMobs> seen_mobs;
+    std::array<PetalID::T, 2 * MAX_SLOT_COUNT> cached_loadout = {PetalID::kNone};
 
     double timestamp = 0;
 
@@ -39,42 +41,34 @@ namespace Game {
 
     uint32_t respawn_level = 1;
 
-    PetalID::T cached_loadout[2 * MAX_SLOT_COUNT] = {PetalID::kNone};
 
     uint8_t loadout_count = 5;
     uint8_t simulation_ready = 0;
     uint8_t on_game_screen = 0;
     uint8_t show_debug = 0;
-    uint8_t is_mobile = check_mobile();
 
-    uint8_t show_chat = 0;
-    std::string chat_text;
+    std::vector<ChatMsg> chats;     // 接收到的聊天消息
+    std::string chat_text;          // 本地输入框绑定的文本
+    bool show_chat = false;         // 当前是否显示聊天输入框
+
     std::vector<BroadcastMessage> broadcasts;
+    std::string password;
 }
 
 using namespace Game;
 
 void Game::init() {
+    Input::is_mobile = check_mobile();
     Storage::retrieve();
     reset();
     title_ui_window.add_child(
-        [](){
+        [](){ 
             Ui::Element *elt = new Ui::StaticText(60, "the gardn project");
             elt->x = 0;
             elt->y = -270;
             return elt;
         }()
     );
-    #ifdef DEV
-    title_ui_window.add_child(
-        [](){
-            Ui::Element *elt = new Ui::StaticText(40, "寮�鍙戝垎鏀湇锛岄殢鏃堕噸鍚紒");
-            elt->x = 0;
-            elt->y = -135;
-            return elt;
-        }()
-    );
-    #endif
     title_ui_window.add_child(
         Ui::make_title_input_box()
     );
@@ -111,9 +105,24 @@ void Game::init() {
     game_ui_window.add_child(
         Ui::make_loadout_backgrounds()
     );
+    game_ui_window.add_child(
+        Ui::make_mobile_joystick()
+    );
+    game_ui_window.add_child(
+        Ui::make_mobile_attack_button()
+    );
+    game_ui_window.add_child(
+        Ui::make_mobile_defend_button()
+    );
     for (uint8_t i = 0; i < MAX_SLOT_COUNT * 2; ++i) game_ui_window.add_child(new Ui::UiLoadoutPetal(i));
     game_ui_window.add_child(
         Ui::make_leaderboard()
+    );
+    game_ui_window.add_child(
+        Ui::make_chat()
+    );
+    game_ui_window.add_child(
+        Ui::make_broadcast_display()
     );
     game_ui_window.add_child(
         Ui::make_overlevel_indicator()
@@ -122,23 +131,28 @@ void Game::init() {
         Ui::make_stat_screen()
     );
     game_ui_window.add_child(
-        Ui::make_chat_input()
-    );
-    game_ui_window.add_child(
         new Ui::HContainer({
-            #ifdef DEV
-            new Ui::StaticText(20, "the gardn project 寮�鍙戝垎鏀湇锛岄殢鏃堕噸鍚紒")
-            #else
             new Ui::StaticText(20, "the gardn project")
-            #endif
         }, 20, 0, { .h_justify = Ui::Style::Left, .v_justify = Ui::Style::Top })
-    );
-    game_ui_window.add_child(
-        Ui::make_broadcast_display()
     );
     Ui::make_petal_tooltips();
     other_ui_window.add_child(
         Ui::make_debug_stats()
+    );
+    other_ui_window.add_child(
+        [](){ 
+            Ui::Element *elt = new Ui::HContainer({
+                new Ui::DynamicText(16, [](){ return Game::disconnect_message; })
+            }, 5, 5, { 
+                .fill = 0x40000000, 
+                .should_render = [](){
+                    return !Game::socket.ready && Game::disconnect_message != "";
+                },
+                .v_justify = Ui::Style::Top
+            });
+            elt->y = 50;
+            return elt;
+        }()
     );
     other_ui_window.style.no_polling = 1;
     socket.connect(WS_URL);
@@ -162,7 +176,7 @@ void Game::reset() {
 uint8_t Game::alive() {
     return socket.ready && simulation_ready
     && simulation.ent_exists(camera_id)
-    && simulation.ent_alive(simulation.get_ent(camera_id).player);
+    && simulation.ent_alive(simulation.get_ent(camera_id).get_player());
 }
 
 uint8_t Game::in_game() {
@@ -176,6 +190,17 @@ uint8_t Game::should_render_title_ui() {
 
 uint8_t Game::should_render_game_ui() {
     return transition_circle > 0 && simulation_ready && simulation.ent_exists(camera_id);
+}
+
+void Game::poll_ui_event(Ui::ScreenEvent const &event) {
+    Ui::focused = nullptr;
+    if (Game::should_render_title_ui())
+        title_ui_window.poll_events(event);
+    if (Game::should_render_game_ui())
+        game_ui_window.poll_events(event);
+    other_ui_window.poll_events(event);
+    if (Ui::focused != nullptr)
+        Ui::focused->focused = 1;
 }
 
 void Game::tick(double time) {
@@ -195,36 +220,39 @@ void Game::tick(double time) {
     Ui::focused = nullptr;
     double a = Ui::window_width / 1920;
     double b = Ui::window_height / 1080;
-    Ui::scale = std::max({a, b});
+    Ui::scale = std::max(a, b);
     if (alive()) {
         on_game_screen = 1;
-        player_id = simulation.get_ent(camera_id).player;
+        player_id = simulation.get_ent(camera_id).get_player();
         Entity const &player = simulation.get_ent(player_id);
-        Game::loadout_count = player.loadout_count;
+        Game::loadout_count = player.get_loadout_count();
         for (uint32_t i = 0; i < MAX_SLOT_COUNT + Game::loadout_count; ++i) {
-            cached_loadout[i] = player.loadout_ids[i];
+            cached_loadout[i] = player.get_loadout_ids(i);
             Game::seen_petals[cached_loadout[i]] = 1;
         }
-        score = player.score;
-        overlevel_timer = player.overlevel_timer;
+        score = player.get_score();
+        overlevel_timer = player.get_overlevel_timer();
     } else {
         player_id = NULL_ENTITY;
         overlevel_timer = 0;
+    }
+
+    //event poll
+    if (Input::is_mobile) {
+        for (auto &x : Input::touches) {
+            Input::Touch const &touch = x.second;
+            if (touch.saturated) continue;
+            Game::poll_ui_event({ .id = touch.id, .x = touch.x, .y = touch.y, .press = 1 });
+        }
+    }
+    else {
+        Game::poll_ui_event({ .id = 0, .x = Input::mouse_x, .y = Input::mouse_y, .press = 0 });
     }
 
     if (in_game())
         transition_circle = fclamp(transition_circle * powf(1.05, Ui::dt * 60 / 1000) + Ui::dt / 5, 0, MAX_TRANSITION_CIRCLE);
     else 
         transition_circle = fclamp(transition_circle / powf(1.05, Ui::dt * 60 / 1000) - Ui::dt / 5, 0, MAX_TRANSITION_CIRCLE);
-
-    if (Input::is_valid()) {
-        if (Game::should_render_title_ui())
-            title_ui_window.poll_events();
-        if (Game::should_render_game_ui())
-            game_ui_window.poll_events();
-        other_ui_window.poll_events();
-    }
-    else Ui::focused = nullptr;
 
     if (should_render_title_ui()) {
         render_title_screen();
@@ -254,7 +282,7 @@ void Game::tick(double time) {
         renderer.set_global_alpha(0.85);
         renderer.translate(renderer.width/2,renderer.height/2);
         renderer.draw_image(game_ui_renderer);
-        if (!Game::show_chat) {
+        if (!show_chat) {
             if (Input::keys_held.contains('`')) {
                 //process keybind commands
                 if (Input::keys_held_this_tick.contains('Q'))
@@ -282,7 +310,7 @@ void Game::tick(double time) {
                     Ui::backward_secondary_select();
                 else if (Ui::UiLoadout::selected_with_keys == MAX_SLOT_COUNT) {
                     for (uint8_t i = 0; i < Game::loadout_count; ++i) {
-                        if (Input::keys_held_this_tick.contains(SLOT_KEYCODES[i])) {
+                        if (Input::keys_held_this_tick.contains(SLOT_KEYBINDS[i])) {
                             Ui::forward_secondary_select();
                             break;
                         }
@@ -292,14 +320,14 @@ void Game::tick(double time) {
         }
         if (Game::cached_loadout[Game::loadout_count + Ui::UiLoadout::selected_with_keys] == PetalID::kNone)
             Ui::UiLoadout::selected_with_keys = MAX_SLOT_COUNT;
-        if (!Game::show_chat && Ui::UiLoadout::selected_with_keys < MAX_SLOT_COUNT 
+        if (!show_chat && Ui::UiLoadout::selected_with_keys < MAX_SLOT_COUNT
             && Game::cached_loadout[Game::loadout_count + Ui::UiLoadout::selected_with_keys] != PetalID::kNone) {
             if (Input::keys_held_this_tick.contains('T')) {
                 Ui::ui_delete_petal(Ui::UiLoadout::selected_with_keys + Game::loadout_count);
                 Ui::forward_secondary_select();
             } else {
                 for (uint8_t i = 0; i < Game::loadout_count; ++i) {
-                    if (Input::keys_held_this_tick.contains(SLOT_KEYCODES[i])) {
+                    if (Input::keys_held_this_tick.contains(SLOT_KEYBINDS[i])) {
                         Ui::ui_swap_petals(i, Ui::UiLoadout::selected_with_keys + Game::loadout_count);
                         if (Game::cached_loadout[Game::loadout_count + Ui::UiLoadout::selected_with_keys] == PetalID::kNone)
                             Ui::forward_secondary_select();
@@ -315,11 +343,23 @@ void Game::tick(double time) {
         
     if (Game::timestamp - Ui::UiLoadout::last_key_select > 5000)
         Ui::UiLoadout::selected_with_keys = MAX_SLOT_COUNT;
-    LERP(slot_indicator_opacity, Ui::UiLoadout::selected_with_keys != MAX_SLOT_COUNT, Ui::lerp_amount);
+    slot_indicator_opacity = lerp(slot_indicator_opacity, Ui::UiLoadout::selected_with_keys != MAX_SLOT_COUNT, Ui::lerp_amount);
 
     other_ui_window.render(renderer);
 
     //no rendering past this point
+    if (!Input::is_mobile) {
+        if (Input::keyboard_movement) {
+            Input::game_inputs.x = 300 * (Input::keys_held.contains('D') - Input::keys_held.contains('A') + Input::keys_held.contains(39) - Input::keys_held.contains(37));
+            Input::game_inputs.y = 300 * (Input::keys_held.contains('S') - Input::keys_held.contains('W') + Input::keys_held.contains(40) - Input::keys_held.contains(38));
+        } else {
+           Input::game_inputs.x = (Input::mouse_x - renderer.width / 2) / Ui::scale;
+           Input::game_inputs.y = (Input::mouse_y - renderer.height / 2) / Ui::scale;
+        }
+        uint8_t attack = Input::keys_held.contains(' ') || BitMath::at(Input::mouse_buttons_state, Input::LeftMouse);
+        uint8_t defend = Input::keys_held.contains('\x10') || BitMath::at(Input::mouse_buttons_state, Input::RightMouse);
+        Input::game_inputs.flags = (attack << InputFlags::kAttacking) | (defend << InputFlags::kDefending);
+    }
 
     if (socket.ready && alive()) send_inputs();
 

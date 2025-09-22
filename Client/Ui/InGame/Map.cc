@@ -32,26 +32,26 @@ void Minimap::on_render(Renderer& ctx) {
 
     // »æÖÆ°Ð×Ó
     sim.for_each<kMob>([&](Simulation*, Entity const& ent) {
-        if (ent.mob_id == MobID::kTargetDummy) {
+        if (ent.get_mob_id() == MobID::kTargetDummy) {
             uint32_t color = FLOWER_COLORS[ColorID::kRed];
-            ctx.set_fill(color);  
+            ctx.set_fill(color);
             ctx.set_stroke(Renderer::HSV(color, 0.8));
             ctx.set_line_width(ARENA_WIDTH / 120);
             ctx.begin_path();
-            ctx.arc(ent.x, ent.y, ARENA_WIDTH / 60);
+            ctx.arc(ent.get_x(), ent.get_y(), ARENA_WIDTH / 60);
             ctx.fill();
             ctx.stroke();
         }
         });
 
     sim.for_each<kFlower>([&](Simulation*, Entity const& ent) {
-        if (ent.id != camera.player && ent.team == camera.team) {
-            uint32_t color = FLOWER_COLORS[ent.color];
+        if (ent.id != camera.get_player() && ent.get_team() == sim.get_ent(camera.get_player()).get_team()) {
+            uint32_t color = FLOWER_COLORS[ent.get_color()];
             ctx.set_fill(color);
             ctx.set_stroke(Renderer::HSV(color, 0.8));
             ctx.set_line_width(ARENA_WIDTH / 120);
             ctx.begin_path();
-            ctx.arc(ent.x, ent.y, ARENA_WIDTH / 60);
+            ctx.arc(ent.get_x(), ent.get_y(), ARENA_WIDTH / 60);
             ctx.fill();
             ctx.stroke();
         }
@@ -62,7 +62,7 @@ void Minimap::on_render(Renderer& ctx) {
     ctx.set_stroke(Renderer::HSV(0xffffe763, 0.8));
     ctx.set_line_width(ARENA_WIDTH / 120);
     ctx.begin_path();
-    ctx.arc(camera.camera_x, camera.camera_y, ARENA_WIDTH / 60);
+    ctx.arc(camera.get_camera_x(), camera.get_camera_y(), ARENA_WIDTH / 60);
     ctx.fill();
     ctx.stroke();
 }

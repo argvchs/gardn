@@ -10,6 +10,6 @@ namespace DOM {
     void update_pos_and_dimension(char const *, float, float, float, float);
     std::string retrieve_text(char const *, uint32_t);
     void update_text(char const *, std::string const &, uint32_t);
-    void element_focus(char const *);
     void open_page(char const *);
+    void element_focus(char const* name);
 }

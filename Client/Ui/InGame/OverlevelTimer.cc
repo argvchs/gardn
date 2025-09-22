@@ -11,7 +11,32 @@ using namespace Ui;
 
 OverlevelTimer::OverlevelTimer(float w) : Element(w,w,{}) {}
 
-void OverlevelTimer::on_render(Renderer &ctx) {    
+static std::string get_overlevel_direction(float px, float py) {
+    uint32_t current_index = Map::get_zone_from_pos(px, py);
+    int current_difficulty = MAP_DATA[current_index].difficulty;
+    ZoneDefinition const* nearest_higher = nullptr;
+    float min_dx = std::numeric_limits<float>::max();
+
+    for (auto const& zone : MAP_DATA) {
+        if (zone.difficulty <= current_difficulty) continue;
+
+        float zx = (zone.left + zone.right) * 0.5f;
+        float dx = std::abs(zx - px);
+
+        if (dx < min_dx) {
+            min_dx = dx;
+            nearest_higher = &zone;
+        }
+    }
+
+    if (!nearest_higher) return ""; // 没有更高难度区域
+
+    float zx = (nearest_higher->left + nearest_higher->right) * 0.5f;
+    return zx > px ? "MOVE RIGHT →" : "← MOVE LEFT";
+}
+
+
+void OverlevelTimer::on_render(Renderer &ctx) {
     float ratio = Game::overlevel_timer / (PETAL_DISABLE_DELAY * TPS);
     ctx.set_fill(0x80000000);
     ctx.begin_path();
@@ -28,7 +53,7 @@ void OverlevelTimer::on_render(Renderer &ctx) {
 Element *Ui::make_overlevel_indicator() {
     Element *elt = new Ui::HContainer({
         new Ui::VContainer({
-            new Ui::StaticText(18, "MOVE RIGHT →", { .fill = 0xffea7f80, .h_justify = Style::Left }),
+            new Ui::DynamicText(18, []() { return get_overlevel_direction(Game::simulation.get_ent(Game::player_id).get_x(), Game::simulation.get_ent(Game::player_id).get_y()); }, {.fill = 0xffea7f80, .h_justify = Ui::Style::Left }),
             new Ui::StaticText(14, "You are overleveled for this zone", { .fill = 0xffffffff, .h_justify = Style::Left }),
             new Ui::StaticText(14, "You will be unable to attack", { .fill = 0xffffffff, .h_justify = Style::Left }),
         }, 0, 3),
@@ -42,7 +67,7 @@ Element *Ui::make_overlevel_indicator() {
         .should_render = [](){
             if (!Game::alive()) return false;
             Entity const &player = Game::simulation.get_ent(Game::player_id);
-            return MAP_DATA[Map::get_zone_from_pos(player.x, player.y)].difficulty < Map::difficulty_at_level(score_to_level(player.score))
+            return MAP_DATA[Map::get_zone_from_pos(player.get_x(), player.get_y())].difficulty < Map::difficulty_at_level(score_to_level(Game::score))
             && Game::overlevel_timer > 0;
         }
     });

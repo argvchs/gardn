@@ -4,26 +4,28 @@
 #include <Server/PetalTracker.hh>
 #include <Server/Server.hh>
 #include <Server/Spawn.hh>
-#include <Server/picosha2.h>
 
+#include <Helpers/UTF8.hh>
+#include <Server/picosha2.h>
 #include <Shared/Binary.hh>
 #include <Shared/Config.hh>
-#include <Shared/Helpers.hh>
-
-#include <iostream>
 #include <sstream>
-#include <algorithm>
-#include <cctype>
-#include <limits>
+#include <array>
+#include <iostream>
 #include <cmath>
 
-static uint32_t const RARITY_TO_XP[RarityID::kNumRarities] = { 2, 10, 50, 200, 1000, 5000, 0 };
+#define VALIDATE(expr) if (!expr) { client->disconnect(); return; }
+
+constexpr std::array<uint32_t, RarityID::kNumRarities> RARITY_TO_XP = { 2, 10, 50, 200, 1000, 5000, 0 };
+
+float mouse_world_x = 0;
+float mouse_world_y = 0;
 
 Client::Client() : game(nullptr) {}
 
 void Client::init() {
     DEBUG_ONLY(assert(game == nullptr);)
-        Server::game.add_client(this);
+    Server::game.add_client(this);    
 }
 
 void Client::remove() {
@@ -31,44 +33,37 @@ void Client::remove() {
     game->remove_client(this);
 }
 
-void Client::disconnect() {
+void Client::disconnect(int reason, std::string const &message) {
     if (ws == nullptr) return;
     remove();
-    ws->end();
+    ws->end(reason, message);
 }
 
 uint8_t Client::alive() {
     if (game == nullptr) return false;
-    Simulation* simulation = &game->simulation;
-    return simulation->ent_exists(camera)
-        && simulation->ent_exists(simulation->get_ent(camera).player);
+    Simulation *simulation = &game->simulation;
+    return simulation->ent_exists(camera) 
+    && simulation->ent_exists(simulation->get_ent(camera).get_player());
 }
 
-#define VALIDATE(expr) if (!expr) { client->disconnect(); return; }
-
-void Client::on_message(WebSocket* ws, std::string_view message, uint64_t code) {
+void Client::on_message(WebSocket *ws, std::string_view message, uint64_t code) {
     if (ws == nullptr) return;
-    uint8_t const* data = reinterpret_cast<uint8_t const*>(message.data());
+    uint8_t const *data = reinterpret_cast<uint8_t const *>(message.data());
     Reader reader(data);
     Validator validator(data, data + message.size());
-    Client* client = ws->getUserData();
+    Client *client = ws->getUserData();
     if (client == nullptr) {
-        ws->end();
+        ws->end(CloseReason::kServer, "Server Error");
         return;
     }
     if (!client->verified) {
-        VALIDATE(validator.validate_uint8());
+        if (client->check_invalid(validator.validate_uint8() && validator.validate_uint64())) return;
         if (reader.read<uint8_t>() != Serverbound::kVerify) {
-            //disconnect
             client->disconnect();
             return;
         }
-        VALIDATE(validator.validate_uint64());
         if (reader.read<uint64_t>() != VERSION_HASH) {
-            Writer writer(Server::OUTGOING_PACKET);
-            writer.write<uint8_t>(Clientbound::kOutdated);
-            client->send_packet(writer.packet, writer.at - writer.packet);
-            client->disconnect();
+            client->disconnect(CloseReason::kOutdated, "Outdated Version");
             return;
         }
         client->verified = 1;
@@ -79,185 +74,183 @@ void Client::on_message(WebSocket* ws, std::string_view message, uint64_t code) 
         client->disconnect();
         return;
     }
-    VALIDATE(validator.validate_uint8());
+    if (client->check_invalid(validator.validate_uint8())) return;
     switch (reader.read<uint8_t>()) {
-    case Serverbound::kVerify:
-        client->disconnect();
-        return;
-    case Serverbound::kClientInput: {
-        if (!client->alive()) break;
-        Simulation* simulation = &client->game->simulation;
-        Entity& camera = simulation->get_ent(client->camera);
-        Entity& player = simulation->get_ent(camera.player);
-        VALIDATE(validator.validate_float());
-        VALIDATE(validator.validate_float());
-        float x = reader.read<float>();
-        float y = reader.read<float>();
-        if (x || y) client->x = x, client->y = y;
-        if (x == 0 && y == 0) player.acceleration.set(0, 0);
-        else {
-            if (std::abs(x) > 5e3 || std::abs(y) > 5e3) break;
-            Vector accel(x, y);
-            float m = accel.magnitude();
-            if (m > 200) accel.set_magnitude(PLAYER_ACCELERATION);
-            else accel.set_magnitude(m / 200 * PLAYER_ACCELERATION);
-            player.acceleration = accel;
-        }
-        // 先计算鼠标在世界空间的坐标
-        float mouse_world_x = player.x + client->x / camera.fov;
-        float mouse_world_y = player.y + client->y / camera.fov;
-
-        // 遍历玩家装备的花瓣
-        for (uint32_t i = 0; i < player.loadout_count; ++i) {
-            LoadoutSlot const& slot = player.loadout[i];
-            PetalID::T slot_petal_id = slot.get_petal_id();
-            PetalData const& petal_data = PETAL_DATA[slot_petal_id];
-
-            if (petal_data.attributes.controls != PetalID::kNone) {
-                PetalID::T controlled_id = petal_data.attributes.controls;
-
-                simulation->for_each_entity([&](Simulation* sim2, Entity& ent) {
-                    if (ent.parent != player.id) return;          // 必须是该玩家的
-                    if (ent.petal_id != controlled_id) return;    // 必须是被控制的花瓣类型
-
-                    // ==== 检查与其他同类实体的重叠 ====
-                    sim2->for_each_entity([&](Simulation* sim3, Entity& other) {
-                        if (&other == &ent) return;               // 跳过自己
-                        if (other.parent != player.id) return;    // 只管本玩家的
-                        if (other.petal_id != controlled_id) return;
-
-                        float dx = ent.x - other.x;
-                        float dy = ent.y - other.y;
-                        float dist2 = dx * dx + dy * dy;
-                        float min_dist = ent.radius + other.radius;
-
-                        if (dist2 < min_dist * min_dist) {
-                            float dist = std::sqrt(dist2);
-                            if (dist < 0.0001f) dist = 0.0001f; // 防止除零
-
-                            // 计算分离向量
-                            float overlap = 0.5f * (min_dist - dist);
-                            float nx = dx / dist;
-                            float ny = dy / dist;
-
-                            // 推开双方
-                            ent.x += nx * overlap * 4;
-                            ent.y += ny * overlap * 4;
-                            other.x -= nx * overlap * 4;
-                            other.y -= ny * overlap * 4;
-                        }
-                        });
-
-                    // ==== 控制朝向 ====
-                    Vector aim(mouse_world_x - ent.x, mouse_world_y - ent.y);
-                    
-                        ent.set_angle(aim.angle());
-                    if (BIT_AT(player.input, InputFlags::kDefending)) {
-                        ent.set_angle(aim.angle() + M_PI);
-                    }
-                    });
-
+        case Serverbound::kVerify:
+            client->disconnect();
+            return;
+        case Serverbound::kClientInput: {
+            if (!client->alive()) break;
+            Simulation *simulation = &client->game->simulation;
+            Entity &camera = simulation->get_ent(client->camera);
+            Entity &player = simulation->get_ent(camera.get_player());
+            if (client->check_invalid(
+                validator.validate_float() &&
+                validator.validate_float() &&
+                validator.validate_uint8()
+            )) return;
+            float x = reader.read<float>();
+            float y = reader.read<float>();
+            if (x == 0 && y == 0) player.acceleration.set(0,0);
+            else {
+                if (std::abs(x) > 5e3 || std::abs(y) > 5e3) break;
+                Vector accel(x,y);
+                float m = accel.magnitude();
+                if (m > 200) accel.set_magnitude(PLAYER_ACCELERATION);
+                else accel.set_magnitude(m / 200 * PLAYER_ACCELERATION);
+                player.acceleration = accel;
             }
+            mouse_world_x = player.get_x() + x / camera.get_fov();
+            mouse_world_y = player.get_y() + y / camera.get_fov();
+
+            // 遍历玩家装备的花瓣
+            for (uint32_t i = 0; i < player.get_loadout_count(); ++i) {
+                LoadoutSlot const& slot = player.loadout[i];
+                PetalID::T slot_petal_id = slot.get_petal_id();
+                struct PetalData const& petal_data = PETAL_DATA[slot_petal_id];
+                if (petal_data.attributes.controls != PetalID::kNone) {
+                    PetalID::T controlled_id = petal_data.attributes.controls;
+
+                    simulation->for_each_entity([&](Simulation* sim2, Entity& ent) {
+                        if (ent.get_parent() != player.id) return;          // 必须是该玩家的
+                        if (ent.get_petal_id() != controlled_id) return;    // 必须是被控制的花瓣类型
+
+                        // ==== 检查与其他同类实体的重叠 ====
+                        sim2->for_each_entity([&](Simulation* sim3, Entity& other) {
+                            if (&other == &ent) return;               // 跳过自己
+                            if (other.get_parent() != player.id) return;    // 只管本玩家的
+                            if (other.get_petal_id() != controlled_id) return;
+
+                            float dx = ent.get_x() - other.get_x();
+                            float dy = ent.get_y() - other.get_y();
+                            float dist2 = dx * dx + dy * dy;
+                            float min_dist = ent.get_radius() + other.get_radius();
+
+                            if (dist2 < min_dist * min_dist) {
+                                float dist = std::sqrt(dist2);
+                                if (dist < 0.0001f) dist = 0.0001f; // 防止除零
+
+                                // 计算分离向量
+                                float overlap = 0.5f * (min_dist - dist);
+                                float nx = dx / dist;
+                                float ny = dy / dist;
+
+                                // 推开双方
+                                ent.set_x(ent.get_x() + nx * overlap * 4);
+                                ent.set_y(ent.get_y() + ny * overlap * 4);
+                                other.set_x(other.get_x() - nx * overlap * 4);
+                                other.set_y(other.get_y() - ny * overlap * 4);
+                            }
+                            });
+
+                        // ==== 控制朝向 ====
+                        Vector aim(mouse_world_x - ent.get_x(), mouse_world_y - ent.get_y());
+
+                        ent.set_angle(aim.angle());
+                        if (BitMath::at(player.input, InputFlags::kDefending)) {
+                            ent.set_angle(aim.angle() + M_PI);
+                        }
+                    });
+                }
+            }
+
+            player.input = reader.read<uint8_t>();
+            break;
+        }
+        case Serverbound::kClientSpawn: {
+            if (client->alive()) break;
+            //check string length
+            std::string name;
+            if (client->check_invalid(validator.validate_string(MAX_NAME_LENGTH))) return;
+            reader.read<std::string>(name);
+            if (client->check_invalid(UTF8Parser::is_valid_utf8(name))) return;
+            Simulation *simulation = &client->game->simulation;
+            Entity &camera = simulation->get_ent(client->camera);
+            Entity &player = alloc_player(simulation, camera.get_team());
+            player_spawn(simulation, camera, player);
+            player.set_name(name);
+            std::string password;
+            VALIDATE(validator.validate_string(MAX_PASSWORD_LENGTH));
+            reader.read<std::string>(password);
+            VALIDATE(UTF8Parser::is_valid_utf8(password));
+            client->isAdmin = picosha2::hash256_hex_string(password) == PASSWORD;
+       
+            break;
+        }
+        case Serverbound::kPetalDelete: {
+            if (!client->alive()) break;
+            Simulation *simulation = &client->game->simulation;
+            Entity &camera = simulation->get_ent(client->camera);
+            Entity &player = simulation->get_ent(camera.get_player());
+            if (client->check_invalid(validator.validate_uint8())) return;
+            uint8_t pos = reader.read<uint8_t>();
+            if (pos >= MAX_SLOT_COUNT + player.get_loadout_count()) break;
+            PetalID::T old_id = player.get_loadout_ids(pos);
+            if (PETAL_DATA[old_id].attributes.non_removable) return;
+            if (old_id != PetalID::kNone && old_id != PetalID::kBasic) {
+                uint8_t rarity = PETAL_DATA[old_id].rarity;
+                player.set_score(player.get_score() + RARITY_TO_XP[rarity]);
+                //need to delete if over cap
+                if (player.deleted_petals.size() == player.deleted_petals.capacity())
+                    //removes old trashed old petal
+                    PetalTracker::remove_petal(simulation, player.deleted_petals[0]);
+                player.deleted_petals.push_back(old_id);
+            }
+            player.set_loadout_ids(pos, PetalID::kNone);
+            break;
+        }
+        case Serverbound::kPetalSwap: {
+            if (!client->alive()) break;
+            Simulation *simulation = &client->game->simulation;
+            Entity &camera = simulation->get_ent(client->camera);
+            Entity &player = simulation->get_ent(camera.get_player());
+            if (client->check_invalid(validator.validate_uint8() && validator.validate_uint8())) return;
+            uint8_t pos1 = reader.read<uint8_t>();
+            if (pos1 >= MAX_SLOT_COUNT + player.get_loadout_count()) break;
+            uint8_t pos2 = reader.read<uint8_t>();
+            if (pos2 >= MAX_SLOT_COUNT + player.get_loadout_count()) break;
+            PetalID::T tmp1 = player.get_loadout_ids(pos1);
+            PetalID::T tmp2 = player.get_loadout_ids(pos2);
+            if ((PETAL_DATA[tmp1].attributes.non_removable && pos2 >= player.get_loadout_count() && pos1 < player.get_loadout_count()) ||
+                (PETAL_DATA[tmp2].attributes.non_removable && pos1 >= player.get_loadout_count() && pos2 < player.get_loadout_count()))
+                return;
+
+            player.set_loadout_ids(pos1, tmp2);
+            player.set_loadout_ids(pos2, tmp1);
+            break;
+        }
+        case Serverbound::kChatSend: {
+            if (!client->alive()) break;
+            Simulation* simulation = &client->game->simulation;
+            Entity& camera = simulation->get_ent(client->camera);
+            Entity& player = simulation->get_ent(camera.get_player());
+            std::string text;
+            VALIDATE(validator.validate_string(MAX_CHAT_LENGTH));
+            reader.read<std::string>(text);
+            VALIDATE(UTF8Parser::is_valid_utf8(text));
+            text = UTF8Parser::trunc_string(text, MAX_CHAT_LENGTH);
+            if (text.empty()) break;
+
+            // 命令处理：以 '/' 开头的不进行转发
+            if (!text.empty() && text[0] == '/') {
+                command(client, text.substr(1), mouse_world_x, mouse_world_y);
+                break; // 不放入广播
+            }
+
+            // 直接广播，不用维护队列
+            client->game->chat(player.id, text);
+            break;
         }
 
-
-        VALIDATE(validator.validate_uint8());
-        player.input = reader.read<uint8_t>();
-        //store player's acceleration and input in camera (do not reset ever)
-        break;
-    }
-    case Serverbound::kClientSpawn: {
-        if (client->alive()) break;
-        //check string length
-        std::string name;
-        VALIDATE(validator.validate_string(MAX_NAME_LENGTH));
-        reader.read<std::string>(name);
-        VALIDATE(UTF8Parser::is_valid_utf8(name));
-        Simulation* simulation = &client->game->simulation;
-        Entity& camera = simulation->get_ent(client->camera);
-        Entity& player = alloc_player(simulation, camera.team);
-        player_spawn(simulation, camera, player);
-        //unnecessary: name = UTF8Parser::trunc_string(name, MAX_NAME_LENGTH);
-        player.set_name(name);
-        std::string password;
-        VALIDATE(validator.validate_string(MAX_PASSWORD_LENGTH));
-        reader.read<std::string>(password);
-        VALIDATE(UTF8Parser::is_valid_utf8(password));
-#ifdef DEV
-        client->isAdmin = true;
-#else
-        client->isAdmin = picosha2::hash256_hex_string(password) == PASSWORD;
-#endif
-        std::cout << "player_spawn " << name_or_unnamed(player.name)
-            << " <" << +player.id.hash << "," << +player.id.id << ">" << std::endl;
-        break;
-    }
-    case Serverbound::kPetalDelete: {
-        if (!client->alive()) break;
-        Simulation* simulation = &client->game->simulation;
-        Entity& camera = simulation->get_ent(client->camera);
-        Entity& player = simulation->get_ent(camera.player);
-        VALIDATE(validator.validate_uint8());
-        uint8_t pos = reader.read<uint8_t>();
-        if (pos >= MAX_SLOT_COUNT + player.loadout_count) break;
-        PetalID::T old_id = player.loadout_ids[pos];
-        if (old_id == PetalID::kCorruption) break;
-        if (old_id != PetalID::kNone && old_id != PetalID::kBasic) {
-            uint8_t rarity = PETAL_DATA[old_id].rarity;
-            player.set_score(player.score + RARITY_TO_XP[rarity]);
-            //need to delete if over cap
-            if (player.deleted_petals.size() == player.deleted_petals.capacity())
-                //removes old trashed old petal
-                PetalTracker::remove_petal(simulation, player.deleted_petals[0]);
-            player.deleted_petals.push_back(old_id);
-        }
-        player.set_loadout_ids(pos, PetalID::kNone);
-        break;
-    }
-    case Serverbound::kPetalSwap: {
-        if (!client->alive()) break;
-        Simulation* simulation = &client->game->simulation;
-        Entity& camera = simulation->get_ent(client->camera);
-        Entity& player = simulation->get_ent(camera.player);
-        VALIDATE(validator.validate_uint8());
-        uint8_t pos1 = reader.read<uint8_t>();
-        if (pos1 >= MAX_SLOT_COUNT + player.loadout_count) break;
-        VALIDATE(validator.validate_uint8());
-        uint8_t pos2 = reader.read<uint8_t>();
-        if (player.loadout_ids[pos1] == PetalID::kCorruption || player.loadout_ids[pos2] == PetalID::kCorruption) break;
-        if (pos2 >= MAX_SLOT_COUNT + player.loadout_count) break;
-        PetalID::T tmp = player.loadout_ids[pos1];
-        player.set_loadout_ids(pos1, player.loadout_ids[pos2]);
-        player.set_loadout_ids(pos2, tmp);
-        break;
-    }
-    case Serverbound::kChatSend: {
-        if (!client->alive()) break;
-        Simulation* simulation = &client->game->simulation;
-        Entity& camera = simulation->get_ent(client->camera);
-        Entity& player = simulation->get_ent(camera.player);
-        if (player.chat_sent != NULL_ENTITY) break;
-        std::string text;
-        VALIDATE(validator.validate_string(MAX_CHAT_LENGTH));
-        reader.read<std::string>(text);
-        VALIDATE(UTF8Parser::is_valid_utf8(text));
-        text = UTF8Parser::trunc_string(text, MAX_CHAT_LENGTH);
-        if (text.size() == 0) break;
-        player.chat_sent = alloc_chat(simulation, text, player).id;
-        std::cout << "chat " << name_or_unnamed(player.name) << ": " << text << std::endl;
-        //commands
-        if (text[0] == '/') command(client, text.substr(1));
-        break;
-    }
     }
 }
 
-void Client::command(Client* client, std::string const& text) {
+void Client::command(Client* client, std::string const& text, float mouse_x, float mouse_y) {
     Simulation* simulation = &client->game->simulation;
     Entity& camera = simulation->get_ent(client->camera);
-    Entity& player = simulation->get_ent(camera.player);
-    float x = player.x + (client->x / camera.fov) * 1.03;
-    float y = player.y + (client->y / camera.fov) * 1.03;
+    Entity& player = simulation->get_ent(camera.get_player());
+    float x = mouse_x;
+    float y = mouse_y;
 
     std::istringstream iss(text);
     std::string command, arg;
@@ -265,7 +258,7 @@ void Client::command(Client* client, std::string const& text) {
     std::transform(command.begin(), command.end(), command.begin(), ::tolower);
 
     if (command == "kill") {
-        simulation->get_ent(player.parent).set_killed_by(name_or_unnamed(player.name));
+        simulation->get_ent(player.get_parent()).set_killed_by(player.get_name());
         simulation->request_delete(player.id);
     }
 
@@ -279,7 +272,7 @@ void Client::command(Client* client, std::string const& text) {
             catch (const std::out_of_range&) { continue; }
             if (id >= PetalID::kNumPetals) continue;
             Entity& drop = alloc_drop(simulation, id);
-            drop.set_x(player.x), drop.set_y(player.y);
+            drop.set_x(player.get_x()), drop.set_y(player.get_y());
         }
     }
     else if (command == "dropto") {
@@ -307,7 +300,7 @@ void Client::command(Client* client, std::string const& text) {
         try { iss >> arg, xp = uint32_t(std::stoul(arg)); }
         catch (const std::invalid_argument&) { return; }
         catch (const std::out_of_range&) { return; }
-        player.set_score(player.score + xp);
+        player.set_score(player.get_score() + xp);
     }
     else if (command == "setxp")
     {
@@ -329,7 +322,7 @@ void Client::command(Client* client, std::string const& text) {
             catch (const std::invalid_argument&) { continue; }
             catch (const std::out_of_range&) { continue; }
             if (id >= MobID::kNumMobs) continue;
-            alloc_mob(simulation, id, player.x, player.y, NULL_ENTITY);
+            alloc_mob(simulation, id, player.get_x(), player.get_y(), NULL_ENTITY);
         }
     }
     else if (command == "spawnto") {
@@ -349,7 +342,7 @@ void Client::command(Client* client, std::string const& text) {
             catch (const std::invalid_argument&) { continue; }
             catch (const std::out_of_range&) { continue; }
             if (id >= MobID::kNumMobs) continue;
-            alloc_mob(simulation, id, player.x, player.y, player.team);
+            alloc_mob(simulation, id, player.get_x(), player.get_y(), player.get_team());
         }
     }
     else if (command == "spawnallyto") {
@@ -359,7 +352,7 @@ void Client::command(Client* client, std::string const& text) {
             catch (const std::invalid_argument&) { continue; }
             catch (const std::out_of_range&) { continue; }
             if (id >= MobID::kNumMobs) continue;
-            alloc_mob(simulation, id, x, y, player.team);
+            alloc_mob(simulation, id, x, y, player.get_team());
         }
     }
     else if (command == "spawnenemy") {
@@ -369,7 +362,7 @@ void Client::command(Client* client, std::string const& text) {
             catch (const std::invalid_argument&) { continue; }
             catch (const std::out_of_range&) { continue; }
             if (id >= MobID::kNumMobs) continue;
-            alloc_mob(simulation, id, player.x, player.y, player.id);
+            alloc_mob(simulation, id, player.get_x(), player.get_y(), player.id);
         }
     }
     else if (command == "spawnenemyto") {
@@ -382,28 +375,10 @@ void Client::command(Client* client, std::string const& text) {
             alloc_mob(simulation, id, x, y, player.id);
         }
     }
-    else if (command == "ghost") {
-        if (!simulation->ent_alive(player.parent)) return;
-        Entity& camera_ent = simulation->get_ent(player.parent);
-        Entity& player_ent = player;
-        if (player_ent.ghost_mode) {
-            // set ghost_mode via setter so change syncs to clients
-            player_ent.set_ghost_mode(0);
-            // restore collisions and immunity directly
-            BIT_UNSET(player_ent.flags, EntityFlags::kNoFriendlyCollision);
-            player_ent.immunity_ticks = 0;
-        }
-        else {
-            player_ent.set_ghost_mode(1);
-            BIT_SET(player_ent.flags, EntityFlags::kNoFriendlyCollision);
-            player_ent.immunity_ticks = std::numeric_limits<decltype(player_ent.immunity_ticks)>::max();
-        }
-        std::cout << "ghost mode toggled for " << name_or_unnamed(player_ent.name) << " -> " << +player_ent.ghost_mode << std::endl;
-    }
     else if (command == "killallmobs") {
         for (uint16_t i = 0; i < ENTITY_CAP; ++i) {
             EntityID id(i, 0);
-            if (!simulation->ent_alive(id)) continue;
+           // if (!simulation->ent_alive(id)) continue;
             Entity& ent = simulation->get_ent(id);
             if (ent.has_component(kMob)) {
                 ent.health = 0;
@@ -417,15 +392,29 @@ void Client::command(Client* client, std::string const& text) {
             Server::game.broadcast_message(text);  // 调用服务器广播函数
         }
     }
-
+    else if (command == "god") {
+        if (!player.immunity_ticks) {
+            player.immunity_ticks = 99999 * TPS;
+        }
+        else {
+            player.immunity_ticks = 0;
+        }
+    }
 
 }
 
-void Client::on_disconnect(WebSocket* ws, int code, std::string_view message) {
-    std::cout << "client disconnection\n";
-    Client* client = ws->getUserData();
+void Client::on_disconnect(WebSocket *ws, int code, std::string_view message) {
+    std::printf("disconnect: [%d]\n", code);
+    Client *client = ws->getUserData();
     if (client == nullptr) return;
     client->remove();
-    //Server::clients.erase(client);
-    //delete player in systems
+}
+
+bool Client::check_invalid(bool valid) {
+    if (valid) return false;
+    std::cout << "client sent an invalid packet\n";
+    //optional
+    disconnect();
+
+    return true;
 }

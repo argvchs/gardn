@@ -3,6 +3,7 @@
 #include <Client/Ui/Extern.hh>
 
 #include <Client/Game.hh>
+#include <Client/Input.hh>
 
 #include <cmath>
 
@@ -37,12 +38,11 @@ void Window::on_render(Renderer &ctx) {
     on_render_tooltip(ctx);
 }
 
-void Window::poll_events() {
+void Window::poll_events(ScreenEvent const &event) {
     if (style.no_polling) return;
+    Element::poll_events(event);
     for (Element *elt : children)
-        if (elt->visible) elt->poll_events();
-    if (Ui::focused == nullptr)
-        Ui::focused = this;
+        if (elt->visible) elt->poll_events(event);
 }
 
 void Window::on_event(uint8_t event) {

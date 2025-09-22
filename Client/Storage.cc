@@ -160,8 +160,8 @@ void Storage::retrieve() {
         if (len > 0) {
             Decoder reader(&StorageProtocol::buffer[0]);
             uint8_t opts = reader.read<uint8_t>();
-            Input::movement_helper = BIT_AT(opts, 0);
-            Input::keyboard_movement = BIT_AT(opts, 1);
+            Input::movement_helper = BitMath::at(opts, 0);
+            Input::keyboard_movement = BitMath::at(opts, 1);
         }
     }
     {
@@ -196,7 +196,7 @@ void Storage::retrieve() {
             Game::password = ref;
         }
     }
-    #ifdef DEV
+    #ifdef DEBUG
     for (MobID::T i = 0; i < MobID::kNumMobs; ++i) Game::seen_mobs[i] = 1;
     for (PetalID::T i = PetalID::kBasic; i < PetalID::kNumPetals; ++i) Game::seen_petals[i] = 1;
     #endif

@@ -20,104 +20,10 @@ extern float const BASE_FOV;
 extern float const BASE_HEALTH;
 extern float const BASE_BODY_DAMAGE;
 
-extern struct PetalData const PETAL_DATA[PetalID::kNumPetals];
-extern struct MobData const MOB_DATA[MobID::kNumMobs];
+extern std::array<struct PetalData, PetalID::kNumPetals> const PETAL_DATA;
+extern std::array<struct MobData, MobID::kNumMobs> const MOB_DATA;
 
 //map extends from (0,0) to (ARENA_WIDTH,ARENA_HEIGHT)
-#ifdef DEV
-inline std::array const MAP_DATA = std::to_array<struct ZoneDefinition>({
-    {
-        .left = 0,
-        .top = 0,
-        .right = 1000,
-        .bottom = 1000,
-        .density = 1,
-        .drop_multiplier = 0.3,
-        .spawns = {
-            { MobID::kRock, 500000 },
-            { MobID::kLadybug, 100000 },
-            { MobID::kBee, 100000 },
-            { MobID::kBabyAnt, 25000 },
-            { MobID::kCentipede, 10000 },
-            { MobID::kBoulder, 10000 },
-            { MobID::kMassiveLadybug, 200 },
-            { MobID::kSquare, 1 }
-        },
-        .difficulty = 0,
-        .color = 0xff1ea761,
-        .name = "Easy"
-    },
-    {
-        .left = 1000,
-        .top = 0,
-        .right = 2000,
-        .bottom = 1000,
-        .density = 1,
-        .drop_multiplier = 0.15,
-        .spawns = {
-            { MobID::kCactus, 400000 },
-            { MobID::kBeetle, 100000 },
-            { MobID::kSandstorm, 50000 },
-            { MobID::kBee, 50000 },
-            { MobID::kScorpion, 50000 },
-            { MobID::kLadybug, 50000 },
-            { MobID::kDesertCentipede, 10000 },
-            { MobID::kAntHole, 2000 },
-            { MobID::kShinyLadybug, 1000 },
-            { MobID::kSquare, 1 }
-        },
-        .difficulty = 1,
-        .color = 0xffdecf7c,
-        .name = "Medium"
-    },
-    {
-        .left = 0,
-        .top = 1000,
-        .right = 1000,
-        .bottom = 2000,
-        .density = 1,
-        .drop_multiplier = 0.1,
-        .spawns = {
-            { MobID::kSpider, 100000 },
-            { MobID::kBoulder, 100000 },
-            { MobID::kBee, 100000 },
-            { MobID::kHornet, 100000 },
-            { MobID::kBeetle, 50000 },
-            { MobID::kLadybug, 50000 },
-            { MobID::kCentipede, 10000 },
-            { MobID::kEvilCentipede, 10000 },
-            { MobID::kMassiveBeetle, 2000 },
-            { MobID::kAntHole, 2000 },
-            { MobID::kSquare, 1 }
-        },
-        .difficulty = 2,
-        .color = 0xffb06655,
-        .name = "Hard"
-    },
-    {
-        .left = 1000,
-        .top = 1000,
-        .right = 2000,
-        .bottom = 2000,
-        .density = 1,
-        .drop_multiplier = 0.025,
-        .spawns = {
-            { MobID::kDarkLadybug, 150000 },
-            { MobID::kBeetle, 150000 },
-            { MobID::kHornet, 150000 },
-            { MobID::kSpider, 150000 },
-            { MobID::kBoulder, 100000 },
-            { MobID::kEvilCentipede, 10000 },
-            { MobID::kMassiveBeetle, 2500 },
-            { MobID::kAntHole, 2500 },
-            { MobID::kSquare, 1 }
-        },
-        .difficulty = 3,
-        .color = 0xff777777,
-        .name = "???"
-    }
-});
-#else
 inline std::array const MAP_DATA = std::to_array<struct ZoneDefinition>({
     {
         .left = 0,
@@ -204,7 +110,7 @@ inline std::array const MAP_DATA = std::to_array<struct ZoneDefinition>({
             { MobID::kEvilCentipede, 10000 },
             { MobID::kMassiveBeetle, 2500 },
             { MobID::kAntHole, 2500 },
-            { MobID::kTank, 1000 },
+            { MobID::kTank, 1500 },
             { MobID::kSquare, 1 }
         },
         .difficulty = 3,
@@ -229,6 +135,7 @@ inline std::array const MAP_DATA = std::to_array<struct ZoneDefinition>({
             { MobID::kEvilCentipede, 10000 },
             { MobID::kMassiveBeetle, 2000 },
             { MobID::kAntHole, 2000 },
+            { MobID::kTank, 1000 },
             { MobID::kSquare, 1 }
         },
         .difficulty = 2,
@@ -280,7 +187,6 @@ inline std::array const MAP_DATA = std::to_array<struct ZoneDefinition>({
         .name = "Easy2"
     },
 });
-#endif
 
 std::array const ANTHOLE_SPAWNS = std::to_array<StaticArray<MobID::T, 3>>({
     {MobID::kBabyAnt},
