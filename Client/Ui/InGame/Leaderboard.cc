@@ -6,6 +6,8 @@
 
 #include <string>
 
+#include <format>
+
 #include <iostream>
 
 using namespace Ui;

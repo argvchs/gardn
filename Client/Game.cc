@@ -9,6 +9,7 @@
 #include <Shared/Config.hh>
 
 #include <cmath>
+#include <format>
 
 static double g_last_time = 0;
 float const MAX_TRANSITION_CIRCLE = 2500;

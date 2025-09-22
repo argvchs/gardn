@@ -5,6 +5,7 @@
 #include <Shared/Config.hh>
 
 #include <cstring>
+#include <format>
 #include <iostream>
 
 #include <emscripten.h>
