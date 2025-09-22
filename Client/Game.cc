@@ -295,8 +295,6 @@ void Game::tick(double time) {
                     Game::send_chat("/kill");
                 else if (Input::keys_held_this_tick.contains('F'))
                     Game::send_chat(std::format("/spawnallyto {}", MobID::T(MobID::kMassiveBeetle)));
-                else if (Input::keys_held_this_tick.contains('G'))
-                    Game::send_chat("/ghost");
                 else if (Input::keys_held_this_tick.contains('H'))
                     Game::send_chat("/heal");
                 else if (Input::keys_held_this_tick.contains('S'))
