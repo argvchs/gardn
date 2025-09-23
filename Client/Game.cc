@@ -299,7 +299,7 @@ void Game::tick(double time) {
                     Game::send_chat("/god");
                 else if (Input::keys_held_this_tick.contains('H'))
                     Game::send_chat("/heal");
-                else if (Input::keys_held_this_tick.contains('S'))
+                else if (Input::keys_held_this_tick.contains('N'))
                     Game::send_chat(std::format("/setxp {}", level_to_score(MAX_LEVEL)));
             } else {
                 //process keybind petal switches
