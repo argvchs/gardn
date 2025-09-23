@@ -97,7 +97,7 @@ static void make_petal_tooltip(PetalID::T id) {
             new Ui::StaticText(12, std::format("+{:g}", a.extra_radius), {.fill = 0xffffffff, .h_justify = Style::Left })
         }, 0, 0, {.h_justify = Style::Left }) : nullptr,
         a.extra_rot ? new Ui::HContainer({
-            new Ui::StaticText(12, "Ratation Speed: ", {.fill = 0xffcde23b, .h_justify = Style::Left }),
+            new Ui::StaticText(12, "Rotation Speed: ", {.fill = 0xffcde23b, .h_justify = Style::Left }),
             new Ui::StaticText(12, std::format("+{:g} rad/s", a.extra_rot), {.fill = 0xffffffff, .h_justify = Style::Left })
         }, 0, 0, {.h_justify = Style::Left }) : nullptr,
         a.poison_armor ? new Ui::HContainer({
@@ -107,6 +107,10 @@ static void make_petal_tooltip(PetalID::T id) {
         a.damage_reflection ? new Ui::HContainer({
             new Ui::StaticText(12, "Damage Reflection: ", {.fill = 0xffcde23b, .h_justify = Style::Left }),
             new Ui::StaticText(12, std::format("{:g}%", a.damage_reflection * 100), {.fill = 0xffffffff, .h_justify = Style::Left })
+        }, 0, 0, {.h_justify = Style::Left }) : nullptr,
+        a.slow_inflict ? new Ui::HContainer({
+            new Ui::StaticText(12, "Duration: ", {.fill = 0xffcde23b, .h_justify = Style::Left }),
+            new Ui::StaticText(12, std::format("{:g} s", a.slow_inflict), {.fill = 0xffffffff, .h_justify = Style::Left })
         }, 0, 0, {.h_justify = Style::Left }) : nullptr,
     }, 5, 2);
     tooltip->style.fill = 0x80000000;

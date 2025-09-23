@@ -9,32 +9,28 @@
 
 #include <emscripten.h>
 
-static char _get_key_from_code(std::string const &code) {
-    static std::unordered_map<std::string, char> const KEYCODE_MAP = 
-        {{"AltLeft", 18},{"AltRight", 18},{"ArrowDown", 40},
-        {"ArrowLeft", 37},{"ArrowRight", 39},{"ArrowUp", 38},
-        {"Backquote", '`'},{"Backslash", '\\'},{"Backspace", 8},
-        {"BracketLeft", '['},{"BracketRight", ']'},{"CapsLock", 20},
-        {"Comma", ','},{"ControlLeft", 17},{"ControlRight", 17},
-        {"Delete", 46},{"Digit0", '0'},{"Digit1", '1'},{"Digit2", '2'},
-        {"Digit3", '3'},{"Digit4", '4'},{"Digit5", '5'},{"Digit6", '6'},
-        {"Digit7", '7'},{"Digit8", '8'},{"Digit9", '9'},{"Enter", '\r'},
-        {"Equal", '='},{"Escape", 27},{"F1", 112},{"F10", 121},
-        {"F11", 122},{"F12", 123},{"F2", 113},{"F3", 114},
-        {"F4", 115},{"F5", 116},{"F6", 117},{"F7", 118},{"F8", 119},
-        {"F9", 120},{"Insert", 45},{"KeyA", 'A'},{"KeyB", 'B'},
-        {"KeyC", 'C'},{"KeyD", 'D'},{"KeyE", 'E'},{"KeyF", 'F'},
-        {"KeyG", 'G'},{"KeyH", 'H'},{"KeyI", 'I'},{"KeyJ", 'J'},
-        {"KeyK", 'K'},{"KeyL", 'L'},{"KeyM", 'M'},{"KeyN", 'N'},
-        {"KeyO", 'O'},{"KeyP", 'P'},{"KeyQ", 'Q'},{"KeyR", 'R'},
-        {"KeyS", 'S'},{"KeyT", 'T'},{"KeyU", 'U'},{"KeyV", 'V'},
-        {"KeyW", 'W'},{"KeyX", 'X'},{"KeyY", 'Y'},{"KeyZ", 'Z'},
-        {"MetaLeft", 91},{"Minus", '-'},{"Period", '.'},
-        {"Quote", '\''},{"Semicolon", ';'},{"ShiftLeft", '\x10'},
-        {"ShiftRight", '\x10'},{"Slash", '/'},{"Space", ' '},{"Tab", 9}};
-    auto place = KEYCODE_MAP.find(code);
-    if (place == KEYCODE_MAP.end()) return 0;
-    return place->second;
+static char _get_key_from_code(std::string key) {
+    if (key.length() == 1) {
+        if (key[0] >= 'a' && key[0] <= 'z') key[0] -= 32; // ×ª´óÐ´
+        return key[0];
+    }
+
+    if (key == "Enter") return '\r';
+    if (key == "Backspace") return 8;
+    if (key == "Tab") return 9;
+    if (key == "Escape") return 27;
+    if (key == "Shift") return '\x10';
+    if (key == "Control") return 17;
+    if (key == "Alt") return 18;
+    if (key == "ArrowUp") return 38;
+    if (key == "ArrowDown") return 40;
+    if (key == "ArrowLeft") return 37;
+    if (key == "ArrowRight") return 39;
+    if (key == "Insert") return 45;
+    if (key == "Delete") return 46;
+    if (key == "Meta") return 91;
+
+    return 0;
 }
 
 extern "C" {
@@ -53,7 +49,6 @@ extern "C" {
 
     void key_event(char *code, uint8_t type) {
         char button = _get_key_from_code(std::string(code));
-        printf("key_event: code='%s', key=%d, type=%d\n", code, (int)button, type);
         if (type == 0) {
             Input::keys_held.insert(button);
             Input::keys_held_this_tick.insert(button);
@@ -99,11 +94,11 @@ int setup_inputs() {
     EM_ASM({
         window.addEventListener("keydown", (e) => {
             //e.preventDefault();
-            !e.repeat && _key_event(stringToNewUTF8(e.code), 0);
+            !e.repeat && _key_event(stringToNewUTF8(e.key), 0);
         });
         window.addEventListener("keyup", (e) => {
             //e.preventDefault();
-            !e.repeat && _key_event(stringToNewUTF8(e.code), 1);
+            !e.repeat && _key_event(stringToNewUTF8(e.key), 1);
         });
         window.addEventListener("mousedown", (e) => {
             //e.preventDefault();

@@ -321,7 +321,7 @@ void Chat::on_render(Renderer& ctx) {
                 Game::show_chat = false;
                 is_dragging_scrollbar = false;
             }
-            else if (Input::keys_held_this_tick.contains('\r') || Input::keys_held_this_tick.contains(13)) {
+            else if (Input::keys_held_this_tick.contains('\r')) {
                 if (!ref.empty()) Game::send_chat(ref);
                 ref.clear();
                 Game::show_chat = false;

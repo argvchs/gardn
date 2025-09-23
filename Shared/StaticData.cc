@@ -282,7 +282,8 @@ std::array<struct PetalData, PetalID::kNumPetals> const PETAL_DATA = {{
             .poison_damage = {
                 .damage = 5.0,
                 .time = 1.0
-            }
+            },
+            .slow_inflict = 1.5
         }
     },
     {
