@@ -732,7 +732,7 @@ std::array<struct PetalData, PetalID::kNumPetals> const PETAL_DATA = {{
         .count = 4,
         .rarity = RarityID::kLegendary,
         .attributes = {
-            .clump_radius = 8,
+            .clump_radius = 10,
             .secondary_reload = 0.1,
             .defend_only = 1,
             .poison_damage = {
@@ -888,7 +888,7 @@ std::array<struct PetalData, PetalID::kNumPetals> const PETAL_DATA = {{
         .count = 3,
         .rarity = RarityID::kLegendary,
         .attributes = {
-            .clump_radius = 10,
+            .clump_radius = 15,
             .constant_heal = 4.5,
             .icon_angle = -1
         }
